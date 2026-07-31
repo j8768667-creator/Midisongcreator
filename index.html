@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Advanced 8-Bar Chord & Melody Engine</title>
+    <title>Advanced 8-Bar Sustained Chord & Melody Engine</title>
     <style>
         * { box-sizing: border-box; }
         body { 
@@ -150,8 +150,8 @@
 <body>
 
 <div class="container">
-    <h1>Advanced 8-Bar Chord & Melody Engine</h1>
-    <p>Voice-leading chord arranger with expressive melodic motion, expanded chord types, and multi-track MIDI export.</p>
+    <h1>Advanced Sustained Chord & Melody Engine</h1>
+    <p>Voice-leading chord arranger with warm synth ADSR envelopes, spatial FX, and expressive legato melody generation.</p>
 
     <div class="card">
         <h3>1. Progression & Manual Input</h3>
@@ -175,52 +175,53 @@
         <h3>2. 8-Bar Chord Setup</h3>
         <div id="chordInputs" class="chord-grid"></div>
         
-        <h3>3. Flowing Melody & Rhythm Controls</h3>
+        <h3>3. Sound Shaping & Legato Flow Controls</h3>
         <div class="control-group">
             <div class="control-item">
                 <label for="tempo">BPM</label>
-                <input type="number" id="tempo" value="110" min="60" max="200" inputmode="numeric">
+                <input type="number" id="tempo" value="100" min="50" max="200" inputmode="numeric">
             </div>
             <div class="control-item">
-                <label for="voiceLeading">Voice Leading</label>
-                <select id="voiceLeading">
-                    <option value="smooth" selected>Smooth Inversions (Fluid Flow)</option>
-                    <option value="root">Root Position Only</option>
+                <label for="chordSustain">Chord Pad Envelope</label>
+                <select id="chordSustain">
+                    <option value="warm" selected>Warm Sustained Pad (Seamless)</option>
+                    <option value="ambient">Lush Ambient Wash (Long Release)</option>
+                    <option value="soft">Soft Keys</option>
+                </select>
+            </div>
+            <div class="control-item">
+                <label for="melodyArticulation">Melody Articulation / Legato</label>
+                <select id="melodyArticulation">
+                    <option value="legato" selected>True Legato (Overlapping / Smooth)</option>
+                    <option value="glide">Glide Wash (Sustained Tail)</option>
+                    <option value="staccato">Short Pluck</option>
                 </select>
             </div>
             <div class="control-item">
                 <label for="arpMode">Melodic Motion Style</label>
                 <select id="arpMode">
                     <option value="off">Off (Pad Chords Only)</option>
-                    <option value="stepwise" selected>Stepwise Walk (Passing Tones)</option>
+                    <option value="stepwise" selected>Stepwise Walk (Flowing Passing Tones)</option>
                     <option value="arch">Contour Arch (Smooth Waves)</option>
-                    <option value="updown">Up-Down Flow</option>
-                    <option value="inout">In-Out (Centered)</option>
+                    <option value="updown">Up-Down Wave</option>
                     <option value="pentatonic">Pentatonic Glide</option>
                 </select>
             </div>
             <div class="control-item">
-                <label for="rhythmGroove">Rhythmic Feel / Groove</label>
+                <label for="rhythmGroove">Rhythmic Feel</label>
                 <select id="rhythmGroove">
-                    <option value="legato16">Continuous Legato (16th Flow)</option>
-                    <option value="syncopated" selected>Syncopated Offbeats (Lyrical)</option>
+                    <option value="legato16" selected>Continuous Legato 16ths</option>
+                    <option value="syncopated">Syncopated Offbeats</option>
                     <option value="dotted8">Dotted 8th Glide</option>
-                    <option value="clave">Latin / Clave Groove</option>
                     <option value="straight8">Straight 8ths</option>
                 </select>
             </div>
             <div class="control-item">
-                <label for="octaveRange">Melodic Octave Spread</label>
-                <select id="octaveRange">
-                    <option value="1" selected>1 Octave (Smooth & Tight)</option>
-                    <option value="2">2 Octaves (Wide)</option>
-                </select>
-            </div>
-            <div class="control-item">
-                <label for="humanDynamics">Dynamics / Accents</label>
-                <select id="humanDynamics">
-                    <option value="on" selected>Human Accents (Beat 1/3 Strong)</option>
-                    <option value="flat">Flat Velocity</option>
+                <label for="spatialFx">Reverb & Delay FX</label>
+                <select id="spatialFx">
+                    <option value="lush" selected>Lush Hall & Stereo Delay</option>
+                    <option value="subtle">Subtle Room</option>
+                    <option value="off">Dry (No FX)</option>
                 </select>
             </div>
             <div class="control-item">
@@ -249,14 +250,13 @@
 </div>
 
 <script>
-    // --- EXPANDED MUSICAL UTILITIES & DICTIONARIES ---
+    // --- MUSICAL UTILITIES & DICTIONARIES ---
     const noteToMidi = { 
         'C': 60, 'C#': 61, 'Db': 61, 'D': 62, 'D#': 63, 'Eb': 63, 
         'E': 64, 'F': 65, 'F#': 66, 'Gb': 66, 'G': 67, 'G#': 68, 
         'Ab': 68, 'A': 69, 'A#': 70, 'Bb': 70, 'B': 71 
     };
     
-    // Comprehensive Chord Types
     const chordIntervals = {
         'Major': [0, 4, 7],       
         'Minor': [0, 3, 7],       
@@ -274,7 +274,6 @@
         'Add9': [0, 4, 7, 14]
     };
 
-    // Alias mapper for flexible manual string inputs (e.g. Bbdim, m7b5, aug)
     const chordAliases = {
         'maj': 'Major', 'm': 'Minor', 'min': 'Minor',
         'maj7': 'Major7', 'min7': 'Minor7', 'm7': 'Minor7',
@@ -297,7 +296,7 @@
         { root: 'G', type: 'Major' }
     ];
 
-    // --- SETUP VISUALIZER (32 STEPS) ---
+    // --- VISUALIZER SETUP ---
     const visualizerContainer = document.getElementById('playbackVisualizer');
     for (let i = 0; i < 32; i++) {
         const barDiv = document.createElement('div');
@@ -347,7 +346,6 @@
             let matchedRoot = null;
             let typePart = '';
 
-            // Extract Root (handling flats/sharps e.g., Bb, F#, Eb)
             const sortedRoots = Object.keys(noteToMidi).sort((a,b) => b.length - a.length);
             for (let r of sortedRoots) {
                 if (str.toUpperCase().startsWith(r.toUpperCase())) {
@@ -364,7 +362,6 @@
 
             let matchedType = chordAliases[typePart] || Object.keys(chordIntervals).find(t => t.toLowerCase() === typePart);
             if (!matchedType) {
-                alert(`Unrecognized chord type in bar ${i + 1}: "${typePart || 'Standard'}". Defaults to Major or Minor.`);
                 matchedType = 'Major';
             }
 
@@ -420,8 +417,73 @@
         return chords;
     }
 
-    // --- SCHEDULER & AUDIO STATE ---
+    // --- AUDIO CONTEXT & FX BUS ENGINE ---
     let audioCtx = null;
+    let mainFxBus = null;
+    let delayNode = null;
+    let feedbackNode = null;
+
+    function initAudioContext() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Build FX Chain
+            mainFxBus = audioCtx.createGain();
+            mainFxBus.gain.value = 0.85;
+
+            // Stereo Delay Node
+            delayNode = audioCtx.createDelay();
+            delayNode.delayTime.value = 0.25; // 8th note delay feel
+
+            feedbackNode = audioCtx.createGain();
+            feedbackNode.gain.value = 0.35; // Gentle smooth tail feedback
+
+            delayNode.connect(feedbackNode);
+            feedbackNode.connect(delayNode);
+
+            // Connect FX to Destination
+            mainFxBus.connect(audioCtx.destination);
+            delayNode.connect(mainFxBus);
+        }
+
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    // --- ENVELOPE SYNTHESIZER (ADSR SHAPING) ---
+    function playSustainedTone(midiNote, duration, time, waveform = 'sine', peakVol = 0.1, attack = 0.1, release = 0.4) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
+        
+        osc.type = waveform;
+        osc.frequency.setValueAtTime(freq, time);
+
+        const fxSetting = document.getElementById('spatialFx').value;
+        const sendToFx = (fxSetting !== 'off');
+
+        // ADSR Envelope
+        gain.gain.setValueAtTime(0.0001, time);
+        gain.gain.linearRampToValueAtTime(peakVol, time + attack);
+        gain.gain.setValueAtTime(peakVol, time + Math.max(attack, duration - release));
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + duration + release);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (sendToFx) {
+            const sendGain = audioCtx.createGain();
+            sendGain.gain.value = (fxSetting === 'lush') ? 0.4 : 0.15;
+            gain.connect(sendGain);
+            sendGain.connect(delayNode);
+        }
+
+        osc.start(time);
+        osc.stop(time + duration + release + 0.1);
+    }
+
+    // --- SCHEDULER STATE ---
     let isRunning = false;
     let isPreview = false;
     let timeoutId = null;
@@ -432,15 +494,6 @@
     const playBtn = document.getElementById('playBtn');
     const previewBtn = document.getElementById('previewBtn');
     const statusTxt = document.getElementById('currentStatus');
-
-    function initAudioContext() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-    }
 
     playBtn.addEventListener('click', () => {
         initAudioContext();
@@ -457,7 +510,7 @@
     function startArrangement() {
         isRunning = true;
         playBtn.innerText = "Stop Arrangement";
-        bpm = parseInt(document.getElementById('tempo').value) || 110;
+        bpm = parseInt(document.getElementById('tempo').value) || 100;
         current16thNote = 0;
         startTime = audioCtx.currentTime + 0.1;
         lastNotesPlayed = [];
@@ -490,7 +543,7 @@
         if (isRunning) { timeoutId = setTimeout(schedulerLoop, 25); }
     }
 
-    // --- SMOOTH VOICE LEADING LOGIC ENGINE ---
+    // --- VOICE LEADING LOGIC ENGINE ---
     function getVoiceLedNotes(rootMidi, intervals, useSmooth) {
         let chordNotes = intervals.map(interval => rootMidi - 12 + interval);
 
@@ -519,29 +572,22 @@
         return chordNotes;
     }
 
-    // --- ADVANCED MELODIC MOTION & PASSING TONE ALGORITHM ---
-    function getFlowingMelodyNote(stepIndex, chordNotes, mode, octaveSpread) {
+    // --- MELODIC MOTION & PASSING TONE ALGORITHM ---
+    function getFlowingMelodyNote(stepIndex, chordNotes, mode) {
         if (mode === 'off') return null;
 
-        let notesArray = [];
-        for (let oct = 0; oct < octaveSpread; oct++) {
-            chordNotes.forEach(note => notesArray.push(note + (oct * 12)));
-        }
+        let notesArray = [...chordNotes];
         notesArray.sort((a, b) => a - b);
-
         const total = notesArray.length;
 
         if (mode === 'stepwise') {
-            // Stepwise Walk with scalar passing tones
             let baseIndex = Math.floor(stepIndex / 2) % total;
             let isPassingStep = (stepIndex % 2 === 1);
             if (isPassingStep && baseIndex < total - 1) {
-                // Return half-step/whole-step passing tone between adjacent chord notes
                 return Math.round((notesArray[baseIndex] + notesArray[baseIndex + 1]) / 2);
             }
             return notesArray[baseIndex];
         } else if (mode === 'arch') {
-            // Smooth Sine-Wave Arch Contour
             let archVal = Math.sin((stepIndex % 16) / 16 * Math.PI);
             let idx = Math.floor(archVal * (total - 1));
             return notesArray[idx];
@@ -549,14 +595,6 @@
             let cycle = [];
             for (let i = 0; i < total; i++) cycle.push(i);
             for (let i = total - 2; i > 0; i--) cycle.push(i);
-            return notesArray[cycle[stepIndex % cycle.length]];
-        } else if (mode === 'inout') {
-            let mid = Math.floor(total / 2);
-            let cycle = [mid];
-            for (let i = 1; i <= mid; i++) {
-                if (mid - i >= 0) cycle.push(mid - i);
-                if (mid + i < total) cycle.push(mid + i);
-            }
             return notesArray[cycle[stepIndex % cycle.length]];
         } else if (mode === 'pentatonic') {
             let baseNote = notesArray[stepIndex % total];
@@ -569,92 +607,95 @@
 
     // --- RHYTHMIC GROOVE PATTERN DETECTOR ---
     function getGrooveGate(stepInBar, feelStyle) {
-        // Returns { play: boolean, durationMultiplier: number, velocity: number }
         if (feelStyle === 'legato16') {
-            return { play: true, duration: 1.1, vel: (stepInBar % 4 === 0) ? 0.16 : 0.11 };
+            return { play: true, durationMult: 1.25, vel: (stepInBar % 4 === 0) ? 0.12 : 0.08 };
         } else if (feelStyle === 'syncopated') {
             const syncPattern = [
-                { play: true, duration: 1.8, vel: 0.18 }, // Step 0 (Beat 1)
-                { play: false },                           // Step 1
-                { play: true, duration: 1.2, vel: 0.11 }, // Step 2 (Offbeat)
-                { play: true, duration: 1.5, vel: 0.14 }  // Step 3 (Syncopated)
+                { play: true, durationMult: 1.8, vel: 0.14 },
+                { play: false },
+                { play: true, durationMult: 1.4, vel: 0.09 },
+                { play: true, durationMult: 1.6, vel: 0.11 }
             ];
             return syncPattern[stepInBar];
         } else if (feelStyle === 'dotted8') {
             const dottedPattern = [
-                { play: true, duration: 2.8, vel: 0.18 },
+                { play: true, durationMult: 2.8, vel: 0.14 },
                 { play: false },
                 { play: false },
-                { play: true, duration: 2.8, vel: 0.13 }
+                { play: true, durationMult: 2.8, vel: 0.10 }
             ];
             return dottedPattern[stepInBar];
-        } else if (feelStyle === 'clave') {
-            const clavePattern = [
-                { play: true, duration: 1.8, vel: 0.18 },
-                { play: false },
-                { play: true, duration: 1.8, vel: 0.14 },
-                { play: false }
-            ];
-            return clavePattern[stepInBar];
         } else {
-            // Straight 8ths
-            return { play: stepInBar % 2 === 0, duration: 1.8, vel: 0.14 };
+            return { play: stepInBar % 2 === 0, durationMult: 1.8, vel: 0.11 };
         }
     }
 
-    // --- AUDIO GENERATION ---
-    function playSynthTone(midiNote, duration, time, type = 'sine', volume = 0.1) {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
-        
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, time);
-        
-        gain.gain.setValueAtTime(volume, time);
-        gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
-        
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        
-        osc.start(time);
-        osc.stop(time + duration);
-    }
-
+    // --- MAIN AUDIO SCHEDULER ---
     function scheduleAudioForStep(step, time) {
         if (step >= 32) return;
 
         const currentBar = Math.floor(step / 4);
         const stepInBar = step % 4;
         const secondsPer16th = 60.0 / bpm / 4.0;
+        const barDuration = secondsPer16th * 4;
 
         const rootName = document.getElementById(`root-${currentBar}`).value;
         const chordType = document.getElementById(`type-${currentBar}`).value;
         const vLeadingMode = document.getElementById('voiceLeading').value;
+        const chordStyle = document.getElementById('chordSustain').value;
+        const melodyArt = document.getElementById('melodyArticulation').value;
         const arpSetting = document.getElementById('arpMode').value;
         const grooveStyle = document.getElementById('rhythmGroove').value;
-        const octaveSpread = parseInt(document.getElementById('octaveRange').value);
-        const humanizeVel = document.getElementById('humanDynamics').value === 'on';
 
         const rootMidi = noteToMidi[rootName];
         const chordNotes = getVoiceLedNotes(rootMidi, chordIntervals[chordType], vLeadingMode === 'smooth');
 
-        // Play sustained pad chord at beat 0 of every bar
+        // 1. Play Sustained Pad Chord at Bar Start (Step 0)
         if (stepInBar === 0) {
-            chordNotes.forEach(note => playSynthTone(note, secondsPer16th * 4, time, 'triangle', 0.05));
+            let attack = 0.2;
+            let release = 0.5;
+            let peakVol = 0.04;
+
+            if (chordStyle === 'ambient') {
+                attack = 0.4;
+                release = 0.9;
+                peakVol = 0.03;
+            } else if (chordStyle === 'soft') {
+                attack = 0.1;
+                release = 0.3;
+                peakVol = 0.05;
+            }
+
+            chordNotes.forEach(note => {
+                playSustainedTone(note, barDuration, time, 'triangle', peakVol, attack, release);
+            });
         }
 
-        // Melodic Rhythmic Groove Execution
+        // 2. Play Flowing Legato Melody Line
         const groove = getGrooveGate(stepInBar, grooveStyle);
 
         if (groove.play && arpSetting !== 'off') {
-            const melodyNote = getFlowingMelodyNote(step, chordNotes, arpSetting, octaveSpread);
+            const melodyNote = getFlowingMelodyNote(step, chordNotes, arpSetting);
             if (melodyNote !== null) {
-                const noteDuration = secondsPer16th * groove.duration;
-                let volume = groove.vel;
-                if (!humanizeVel) volume = 0.12;
+                let noteDuration = secondsPer16th * groove.durationMult;
+                let attack = 0.04;
+                let release = 0.2;
 
-                playSynthTone(melodyNote + 12, noteDuration, time, 'sine', volume);
+                if (melodyArt === 'legato') {
+                    noteDuration *= 1.15; // Legato overlap
+                    attack = 0.03;
+                    release = 0.25;
+                } else if (melodyArt === 'glide') {
+                    noteDuration *= 1.4;
+                    attack = 0.08;
+                    release = 0.45;
+                } else if (melodyArt === 'staccato') {
+                    noteDuration *= 0.5;
+                    attack = 0.01;
+                    release = 0.08;
+                }
+
+                playSustainedTone(melodyNote + 12, noteDuration, time, 'sine', groove.vel, attack, release);
             }
         }
     }
@@ -670,13 +711,12 @@
         }, delay);
     }
 
-    // --- MULTI-TRACK MIDI FILE GENERATOR WITH EXPRESSIVE RHYTHM ---
+    // --- MULTI-TRACK MIDI FILE GENERATOR WITH EXTENDED SUSTAIN ---
     document.getElementById('downloadMidiBtn').addEventListener('click', () => {
-        const currentBpm = parseInt(document.getElementById('tempo').value) || 110;
+        const currentBpm = parseInt(document.getElementById('tempo').value) || 100;
         const vLeadingMode = document.getElementById('voiceLeading').value;
         const arpSetting = document.getElementById('arpMode').value;
         const grooveStyle = document.getElementById('rhythmGroove').value;
-        const octaveSpread = parseInt(document.getElementById('octaveRange').value);
         const totalTargetBars = parseInt(document.getElementById('exportLength').value) || 8;
         const chords = getSelectedChords();
 
@@ -709,23 +749,23 @@
 
             const barStartTicks = bar * ticksPerQuarter * 4;
 
-            // Track 1: Sustained Pad Chords
+            // Track 1: Fully Sustained Pad Chords (Full Bar Length)
             chordNotes.forEach(note => {
                 track1Events.push({ time: barStartTicks, type: 'noteOn', note: note, vel: 80 });
-                track1Events.push({ time: barStartTicks + (ticksPerQuarter * 4) - 10, type: 'noteOff', note: note, vel: 0 });
+                track1Events.push({ time: barStartTicks + (ticksPerQuarter * 4), type: 'noteOff', note: note, vel: 0 });
             });
 
-            // Track 2: Flowing Arpeggiated Melody
+            // Track 2: Sustained Legato Melody
             for (let step = 0; step < 4; step++) {
                 const globalStep = (bar * 4) + step;
                 const groove = getGrooveGate(step, grooveStyle);
 
                 if (groove.play && arpSetting !== 'off') {
                     const stepTicks = barStartTicks + (step * ticksPer16th);
-                    const melodyNote = getFlowingMelodyNote(globalStep, chordNotes, arpSetting, octaveSpread);
+                    const melodyNote = getFlowingMelodyNote(globalStep, chordNotes, arpSetting);
                     if (melodyNote !== null) {
-                        const noteLengthTicks = Math.round(ticksPer16th * groove.duration) - 10;
-                        const midiVel = Math.round(groove.vel * 700);
+                        const noteLengthTicks = Math.round(ticksPer16th * groove.durationMult * 1.1);
+                        const midiVel = Math.round(groove.vel * 750);
 
                         track2Events.push({ time: stepTicks, type: 'noteOn', note: melodyNote + 12, vel: midiVel });
                         track2Events.push({ time: stepTicks + noteLengthTicks, type: 'noteOff', note: melodyNote + 12, vel: 0 });
@@ -739,7 +779,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `progression_${totalTargetBars}bars.mid`;
+        a.download = `sustained_progression_${totalTargetBars}bars.mid`;
         a.click();
         URL.revokeObjectURL(url);
     });
@@ -804,7 +844,7 @@
         ];
 
         const trk1 = buildTrackBytes(tracks[0], "Chords Pad");
-        const trk2 = buildTrackBytes(tracks[1], "Flowing Melody");
+        const trk2 = buildTrackBytes(tracks[1], "Legato Melody");
 
         return new Uint8Array([...header, ...tempoTrack, ...trk1, ...trk2]);
     }
