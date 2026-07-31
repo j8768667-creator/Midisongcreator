@@ -2,58 +2,159 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Advanced Chord Arranger & Arpeggiator Engine</title>
     <style>
-        body { font-family: sans-serif; background: #121214; color: #e0e0e6; padding: 20px; }
+        * { box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: #121214; 
+            color: #e0e0e6; 
+            padding: 15px; 
+            margin: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
         .container { max-width: 850px; margin: 0 auto; }
-        .card { background: #1a1a1e; padding: 20px; border-radius: 8px; border: 1px solid #2d2d34; margin-bottom: 20px; }
-        h3 { color: #00bcd4; margin-top: 0; }
-        button { background: #00bcd4; color: #121214; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background 0.2s; }
+        .card { background: #1a1a1e; padding: 20px; border-radius: 12px; border: 1px solid #2d2d34; margin-bottom: 20px; }
+        h3 { color: #00bcd4; margin-top: 0; margin-bottom: 15px; }
+        
+        /* Touch-optimized button styling for iPad */
+        button { 
+            background: #00bcd4; 
+            color: #121214; 
+            border: none; 
+            padding: 12px 18px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 16px; /* Prevents iOS auto-zoom */
+            min-height: 44px; /* iPad recommended minimum tap target height */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.1s; 
+            touch-action: manipulation;
+        }
+        button:active { transform: scale(0.98); }
         button:hover { background: #0097a7; }
         button.secondary { background: #2d2d34; color: #fff; border: 1px solid #444; }
         button.secondary:hover { background: #3d3d44; }
-        select, input { background: #2d2d34; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 4px; font-size: 14px; }
-        .chord-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
-        .control-group { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px; align-items: center; }
-        .visualizer { display: flex; gap: 5px; height: 30px; margin-top: 15px; }
-        .bar { flex: 1; background: #2d2d34; border-radius: 3px; transition: background 0.1s; }
+        
+        /* Touch-optimized form inputs */
+        select, input[type="text"], input[type="number"] { 
+            background: #2d2d34; 
+            color: #fff; 
+            border: 1px solid #444; 
+            padding: 10px; 
+            border-radius: 8px; 
+            font-size: 16px; /* Prevents iOS zoom-on-focus */
+            min-height: 44px;
+        }
+
+        .chord-row { 
+            display: grid; 
+            grid-template-columns: 80px 1fr 1fr; 
+            gap: 10px; 
+            margin-bottom: 12px; 
+            align-items: center; 
+        }
+        
+        .control-group { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+            gap: 15px; 
+            margin-top: 15px; 
+            align-items: center; 
+        }
+
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .visualizer { display: flex; gap: 4px; height: 35px; margin-top: 15px; }
+        .bar { flex: 1; background: #2d2d34; border-radius: 4px; transition: background 0.1s; }
         .bar.active { background: #00bcd4; box-shadow: 0 0 10px #00bcd4; }
-        .info { color: #888; font-size: 0.9em; margin-top: 5px; }
+        .info { color: #888; font-size: 0.85em; margin-top: 8px; }
         .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
-        .file-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; background: #222228; padding: 10px; border-radius: 6px; }
+        
+        .file-controls { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            margin-bottom: 20px; 
+            background: #222228; 
+            padding: 15px; 
+            border-radius: 8px; 
+        }
+
+        .manual-input-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .manual-input-group input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .file-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 600px) {
+            .chord-row { grid-template-columns: 60px 1fr 1fr; }
+            button { width: 100%; }
+            .btn-group { flex-direction: column; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>Advanced Chord Arranger & Arpeggiator Engine</h1>
-    <p>An upgraded engine implementing close-position voice leading (inversions), custom arpeggiation patterns, and MIDI export capabilities.</p>
+    <p>An upgraded engine implementing close-position voice leading, custom arpeggiation patterns, and MIDI export options.</p>
 
     <div class="card">
-        <h3>1. File I/O & Manual Import</h3>
+        <h3>1. Manual Input & File Import</h3>
         <div class="file-controls">
-            <label for="chordFileInput" style="font-size:0.9em; cursor:pointer;">Load JSON Chords:</label>
-            <input type="file" id="chordFileInput" accept=".json">
-            <button class="secondary" id="exportJsonBtn">Export Chords JSON</button>
+            <label style="font-weight: bold; font-size: 0.9em;">Type or Paste Chords:</label>
+            <div class="manual-input-group">
+                <input type="text" id="manualChordText" placeholder="e.g. C Major, A Minor, F Major, G Dominant7">
+                <button class="secondary" id="parseManualBtn">Apply Text Chords</button>
+            </div>
+            <div class="info">Separate 4 chords with commas. Types: Major, Minor, Major7, Minor7, Dominant7</div>
+            
+            <hr style="border: 0; border-top: 1px solid #333; width: 100%; margin: 5px 0;">
+
+            <div class="file-input-wrapper">
+                <label for="chordFileInput" style="font-size:0.9em; cursor:pointer; font-weight: bold;">Load File:</label>
+                <input type="file" id="chordFileInput" accept=".json, .txt, application/json, text/plain">
+                <button class="secondary" id="exportJsonBtn">Export JSON</button>
+            </div>
         </div>
 
-        <h3>2. Configuration & Progression</h3>
+        <h3>2. Progression Configuration</h3>
         <div id="chordInputs"></div>
         
         <div class="control-group">
-            <div>
+            <div class="control-item">
                 <label for="tempo">BPM: </label>
-                <input type="number" id="tempo" value="110" min="60" max="200" style="width: 60px;">
+                <input type="number" id="tempo" value="110" min="60" max="200" inputmode="numeric">
             </div>
-            <div>
+            <div class="control-item">
                 <label for="voiceLeading">Voice Leading: </label>
                 <select id="voiceLeading">
-                    <option value="smooth" selected>Smooth Inversions (Closest Position)</option>
-                    <option value="root">Standard (Root Position Only)</option>
+                    <option value="smooth" selected>Smooth Inversions</option>
+                    <option value="root">Standard (Root Position)</option>
                 </select>
             </div>
-            <div>
+            <div class="control-item">
                 <label for="arpMode">Arpeggiator: </label>
                 <select id="arpMode">
                     <option value="off" selected>Off (Sustained Pads)</option>
@@ -66,8 +167,8 @@
 
         <div class="btn-group">
             <button id="playBtn">Generate & Play Loop</button>
-            <button class="secondary" id="previewBtn">Preview Progression Once</button>
-            <button class="secondary" id="downloadMidiBtn">Download Multi-Track MIDI</button>
+            <button class="secondary" id="previewBtn">Preview Progression</button>
+            <button class="secondary" id="downloadMidiBtn">Download MIDI File</button>
         </div>
     </div>
 
@@ -80,7 +181,7 @@
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        <div class="info">Each block represents one 16th note beat in the 4-bar loop cycle.</div>
+        <div class="info">Each block represents one 16th note beat in the 4-bar cycle.</div>
     </div>
 </div>
 
@@ -88,7 +189,6 @@
     // --- MUSICAL UTILITIES & DICTIONARY ---
     const noteToMidi = { 'C': 60, 'C#': 61, 'D': 62, 'D#': 63, 'E': 64, 'F': 65, 'F#': 66, 'G': 67, 'G#': 68, 'A': 69, 'A#': 70, 'B': 71 };
     
-    // Fixed syntax error from original snippet
     const chordIntervals = {
         'Major': [0, 4, 7],       
         'Minor': [0, 3, 7],       
@@ -115,16 +215,57 @@
             row.innerHTML = `
                 <span>Bar ${index + 1}:</span>
                 <select id="root-${index}">
-                    ${Object.keys(noteToMidi).map(n => `<option value="${n}" ${n === chord.root ? 'selected' : ''}>${n}</option>`).join('')}
+                    ${Object.keys(noteToMidi).map(n => `<option value="${n}" ${n.toUpperCase() === chord.root.toUpperCase() ? 'selected' : ''}>${n}</option>`).join('')}
                 </select>
                 <select id="type-${index}">
-                    ${Object.keys(chordIntervals).map(t => `<option value="${t}" ${t === chord.type ? 'selected' : ''}>${t}</option>`).join('')}
+                    ${Object.keys(chordIntervals).map(t => `<option value="${t}" ${t.toLowerCase() === chord.type.toLowerCase() ? 'selected' : ''}>${t}</option>`).join('')}
                 </select>
             `;
             chordInputsContainer.appendChild(row);
         });
     }
     renderChordInputs(defaultChords);
+
+    // --- MANUAL CHORD INPUT PARSER ---
+    document.getElementById('parseManualBtn').addEventListener('click', () => {
+        const textInput = document.getElementById('manualChordText').value.trim();
+        if (!textInput) return;
+
+        const rawChords = textInput.split(',');
+        if (rawChords.length !== 4) {
+            alert('Please enter exactly 4 chords separated by commas (e.g., C Major, A Minor, F Major, G Dominant7)');
+            return;
+        }
+
+        let parsed = [];
+        for (let i = 0; i < rawChords.length; i++) {
+            const parts = rawChords[i].trim().split(/\s+/);
+            if (parts.length < 2) {
+                alert(`Bar ${i + 1} format invalid. Use "Root Type" format like "C Major".`);
+                return;
+            }
+
+            let root = parts[0].toUpperCase();
+            let typeInput = parts.slice(1).join('').toLowerCase();
+
+            // Match root note
+            if (!noteToMidi[root]) {
+                alert(`Invalid root note "${parts[0]}" in bar ${i + 1}. Valid notes: C, C#, D, D#, E, F, F#, G, G#, A, A#, B`);
+                return;
+            }
+
+            // Match chord type
+            let matchedType = Object.keys(chordIntervals).find(t => t.toLowerCase() === typeInput);
+            if (!matchedType) {
+                alert(`Invalid chord type "${parts.slice(1).join(' ')}" in bar ${i + 1}. Supported: Major, Minor, Major7, Minor7, Dominant7`);
+                return;
+            }
+
+            parsed.push({ root: root, type: matchedType });
+        }
+
+        renderChordInputs(parsed);
+    });
 
     // --- FILE INPUT & JSON EXPORT ---
     document.getElementById('chordFileInput').addEventListener('change', (e) => {
@@ -141,7 +282,7 @@
                     alert("Invalid JSON format. Expected an array of 4 chord objects.");
                 }
             } catch(err) {
-                alert("Error reading JSON file.");
+                alert("Error parsing file. Please make sure it's a valid JSON chord array.");
             }
         };
         reader.readAsText(file);
@@ -183,13 +324,23 @@
     const statusTxt = document.getElementById('currentStatus');
     const visualBars = document.getElementById('playbackVisualizer').children;
 
+    function initAudioContext() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        // Unlock AudioContext on iOS Safari if suspended
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
     playBtn.addEventListener('click', () => {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        initAudioContext();
         if (isRunning) { stopArrangement(); } else { isPreview = false; startArrangement(); }
     });
 
     previewBtn.addEventListener('click', () => {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        initAudioContext();
         stopArrangement();
         isPreview = true;
         startArrangement();
@@ -198,7 +349,7 @@
     function startArrangement() {
         isRunning = true;
         playBtn.innerText = "Stop Arrangement";
-        bpm = parseInt(document.getElementById('tempo').value);
+        bpm = parseInt(document.getElementById('tempo').value) || 110;
         current16thNote = 0;
         startTime = audioCtx.currentTime + 0.1;
         lastNotesPlayed = [];
@@ -319,12 +470,10 @@
         const rootMidi = noteToMidi[rootName];
         const chordNotes = getVoiceLedNotes(rootMidi, chordIntervals[chordType], vLeadingMode === 'smooth');
 
-        // Play sustained pad chord on beat 0 of every bar
         if (stepInBar === 0) {
             chordNotes.forEach(note => playSynthTone(note, secondsPer16th * 4, time, 'triangle', 0.05));
         }
 
-        // Play arpeggiated notes per 16th beat if enabled
         const arpNote = getArpNoteForStep(stepInBar, chordNotes, arpSetting);
         if (arpNote !== null) {
             playSynthTone(arpNote + 12, secondsPer16th * 0.9, time, 'sine', 0.15);
@@ -342,9 +491,9 @@
         }, delay);
     }
 
-    // --- MULTI-TRACK MIDI FILE GENERATOR (VANILLA JS) ---
+    // --- MULTI-TRACK MIDI FILE GENERATOR ---
     document.getElementById('downloadMidiBtn').addEventListener('click', () => {
-        const currentBpm = parseInt(document.getElementById('tempo').value);
+        const currentBpm = parseInt(document.getElementById('tempo').value) || 110;
         const vLeadingMode = document.getElementById('voiceLeading').value;
         const arpSetting = document.getElementById('arpMode').value;
         const chords = getSelectedChords();
@@ -352,18 +501,14 @@
         const ticksPerQuarter = 480;
         const ticksPer16th = 120;
 
-        // Track 1: Sustained Chords
         let track1Events = [];
-        // Track 2: Arpeggiator
         let track2Events = [];
-
         let lastNotes = [];
 
         for (let bar = 0; bar < 4; bar++) {
             const rootMidi = noteToMidi[chords[bar].root];
             const intervals = chordIntervals[chords[bar].type];
             
-            // Compute notes using voice leading state
             let chordNotes = intervals.map(i => rootMidi - 12 + i);
             if (vLeadingMode === 'smooth' && lastNotes.length > 0) {
                 const lastMidpoint = lastNotes.reduce((a, b) => a + b, 0) / lastNotes.length;
@@ -379,14 +524,12 @@
             chordNotes.sort((a, b) => a - b);
             lastNotes = [...chordNotes];
 
-            // Add Track 1 Chord events (1 chord per bar = 1920 ticks)
             const barStartTicks = bar * ticksPerQuarter * 4;
             chordNotes.forEach(note => {
                 track1Events.push({ time: barStartTicks, type: 'noteOn', note: note, vel: 80 });
                 track1Events.push({ time: barStartTicks + (ticksPerQuarter * 4) - 10, type: 'noteOff', note: note, vel: 0 });
             });
 
-            // Add Track 2 Arp events (4 steps per bar)
             for (let step = 0; step < 4; step++) {
                 const stepTicks = barStartTicks + (step * ticksPer16th);
                 const arpNote = getArpNoteForStep(step, chordNotes, arpSetting);
@@ -407,7 +550,6 @@
         URL.revokeObjectURL(url);
     });
 
-    // Low-level Binary MIDI File Encoder
     function buildMidiFile(tracks, ticksPerQuarter, bpm) {
         function writeVarInt(value) {
             let buffer = [];
@@ -428,7 +570,6 @@
             events.sort((a, b) => a.time - b.time);
             let bytes = [];
 
-            // Track Name Meta Event
             bytes.push(0x00, 0xFF, 0x03, trackName.length, ...Array.from(trackName).map(c => c.charCodeAt(0)));
 
             let lastTime = 0;
@@ -443,28 +584,24 @@
                 }
             });
 
-            // End of Track Meta Event
             bytes.push(0x00, 0xFF, 0x2F, 0x00);
 
-            // Header Chunk for Track
             const len = bytes.length;
             return [
-                0x4D, 0x54, 0x72, 0x6B, // "MTrk"
+                0x4D, 0x54, 0x72, 0x6B,
                 (len >> 24) & 0xFF, (len >> 16) & 0xFF, (len >> 8) & 0xFF, len & 0xFF,
                 ...bytes
             ];
         }
 
-        // Header Chunk: Format 1, N tracks
         const header = [
-            0x4D, 0x54, 0x68, 0x64, // "MThd"
-            0x00, 0x00, 0x00, 0x06, // Chunk length
-            0x00, 0x01,             // Format 1 (multi-track)
-            0x00, 0x03,             // 3 Tracks total (Conductor + 2 Data Tracks)
+            0x4D, 0x54, 0x68, 0x64,
+            0x00, 0x00, 0x00, 0x06,
+            0x00, 0x01,
+            0x00, 0x03,
             (ticksPerQuarter >> 8) & 0xFF, ticksPerQuarter & 0xFF
         ];
 
-        // Track 0: Tempo track
         const mpqn = Math.round(60000000 / bpm);
         const tempoTrack = [
             0x4D, 0x54, 0x72, 0x6B, 0x00, 0x00, 0x00, 0x0B,
