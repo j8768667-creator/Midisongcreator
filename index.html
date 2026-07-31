@@ -151,7 +151,7 @@
 
 <div class="container">
     <h1>Advanced Sustained Chord & Melody Engine</h1>
-    <p>Voice-leading chord arranger with warm synth ADSR envelopes, spatial FX, and expressive legato melody generation.</p>
+    <p>Voice-leading chord arranger with dual-channel MIDI separation and zero-clash legato algorithm.</p>
 
     <div class="card">
         <h3>1. Progression & Manual Input</h3>
@@ -674,7 +674,7 @@
             });
         }
 
-        // Play Melody Note
+        // Play Melody Note (Lead line offset +12 semitones to avoid pad overlap)
         const groove = getGrooveGate(stepInBar, grooveStyle);
 
         if (groove.play && arpSetting !== 'off') {
@@ -714,7 +714,7 @@
         }, delay);
     }
 
-    // --- ACCURATE NON-CLASHING MULTI-TRACK MIDI GENERATOR ---
+    // --- ACCURATE DUAL-CHANNEL ZERO-CLASH MIDI GENERATOR ---
     document.getElementById('downloadMidiBtn').addEventListener('click', () => {
         const currentBpm = parseInt(document.getElementById('tempo').value) || 100;
         const vLeadingMode = document.getElementById('voiceLeading').value;
@@ -753,13 +753,13 @@
 
             const barStartTicks = bar * ticksPerQuarter * 4;
 
-            // Track 1: Chords Pad (Full 4-beat sustain per bar)
+            // Track 1: Chords Pad (Channel 1 -> 0x90/0x80)
             chordNotes.forEach(note => {
-                track1Events.push({ time: barStartTicks, type: 'noteOn', note: note, vel: 80 });
-                track1Events.push({ time: barStartTicks + (ticksPerQuarter * 4) - 1, type: 'noteOff', note: note, vel: 0 });
+                track1Events.push({ time: barStartTicks, type: 'noteOn', note: note, vel: 55, channel: 0 });
+                track1Events.push({ time: barStartTicks + (ticksPerQuarter * 4) - 1, type: 'noteOff', note: note, vel: 0, channel: 0 });
             });
 
-            // Collect melody notes for Track 2
+            // Collect melody notes for Track 2 (Channel 2)
             for (let step = 0; step < 4; step++) {
                 const globalStep = (bar * 4) + step;
                 const groove = getGrooveGate(step, grooveStyle);
@@ -770,28 +770,27 @@
                     if (melodyNote !== null) {
                         activeMelodyEvents.push({
                             startTicks: stepTicks,
-                            note: melodyNote + 12,
-                            vel: Math.round(groove.vel * 750)
+                            note: melodyNote + 12, // Transposed up 1 octave to sit above pad range
+                            vel: Math.min(127, Math.round(groove.vel * 600) + 20)
                         });
                     }
                 }
             }
         }
 
-        // Track 2: Non-Overlapping Legato Output Logic (Prevents Harmonic Clashing)
+        // Track 2: Non-Overlapping Legato Output Logic (Channel 2 -> 0x91/0x81)
         for (let i = 0; i < activeMelodyEvents.length; i++) {
             const currentEv = activeMelodyEvents[i];
             const nextEv = activeMelodyEvents[i + 1];
 
-            // Hold note until 1 tick before the next note starts (true legato, zero clash)
             let durationTicks = nextEv ? (nextEv.startTicks - currentEv.startTicks - 1) : ticksPerQuarter;
 
             if (melodyArt === 'staccato') {
                 durationTicks = Math.round(ticksPerQuarter * 0.4);
             }
 
-            track2Events.push({ time: currentEv.startTicks, type: 'noteOn', note: currentEv.note, vel: currentEv.vel });
-            track2Events.push({ time: currentEv.startTicks + durationTicks, type: 'noteOff', note: currentEv.note, vel: 0 });
+            track2Events.push({ time: currentEv.startTicks, type: 'noteOn', note: currentEv.note, vel: currentEv.vel, channel: 1 });
+            track2Events.push({ time: currentEv.startTicks + durationTicks, type: 'noteOff', note: currentEv.note, vel: 0, channel: 1 });
         }
 
         const midiBuffer = buildMidiFile([track1Events, track2Events], ticksPerQuarter, currentBpm);
@@ -831,10 +830,13 @@
                 const deltaTime = e.time - lastTime;
                 lastTime = e.time;
                 bytes.push(...writeVarInt(deltaTime));
+                
+                // Assign explicit MIDI Channel (0x90 = Ch 1, 0x91 = Ch 2)
+                const channel = e.channel || 0;
                 if (e.type === 'noteOn') {
-                    bytes.push(0x90, e.note, e.vel);
+                    bytes.push(0x90 | channel, e.note, e.vel);
                 } else if (e.type === 'noteOff') {
-                    bytes.push(0x80, e.note, e.vel);
+                    bytes.push(0x80 | channel, e.note, e.vel);
                 }
             });
 
