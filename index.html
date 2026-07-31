@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Advanced 8-Bar Sustained Chord & Melody Engine</title>
+    <title>Advanced 8-Bar Sustained Chord & Expressive Melody Engine</title>
     <style>
         * { box-sizing: border-box; }
         body { 
@@ -151,7 +151,7 @@
 
 <div class="container">
     <h1>Advanced Sustained Chord & Melody Engine</h1>
-    <p>Voice-leading chord arranger with dual-channel MIDI separation and zero-clash legato algorithm.</p>
+    <p>Voice-leading chord arranger featuring expressive humanized melody phrasing, multi-channel MIDI output, and zero-clash legato tracking.</p>
 
     <div class="card">
         <h3>1. Progression & Manual Input</h3>
@@ -209,7 +209,7 @@
                 <select id="arpMode">
                     <option value="off">Off (Pad Chords Only)</option>
                     <option value="stepwise">Stepwise Walk (Flowing Passing Tones)</option>
-                    <option value="arch" selected>Contour Arch (Smooth Waves)</option>
+                    <option value="arch" selected>Contour Arch (Expressive Curves)</option>
                     <option value="updown">Up-Down Wave</option>
                     <option value="pentatonic">Pentatonic Glide</option>
                 </select>
@@ -575,37 +575,49 @@
         return chordNotes;
     }
 
-    // --- MELODIC MOTION ALGORITHM ---
-    function getFlowingMelodyNote(stepIndex, chordNotes, mode) {
+    // --- ENHANCED EXPRESSIVE MELODIC MOTION ALGORITHM ---
+    function getFlowingMelodyNote(globalStep, chordNotes, mode) {
         if (mode === 'off') return null;
 
-        let notesArray = [...chordNotes];
-        notesArray.sort((a, b) => a - b);
-        const total = notesArray.length;
+        const bar = Math.floor(globalStep / 4);
+        const stepInBar = globalStep % 4;
 
-        if (mode === 'stepwise') {
-            let baseIndex = Math.floor(stepIndex / 2) % total;
-            let isPassingStep = (stepIndex % 2 === 1);
-            if (isPassingStep && baseIndex < total - 1) {
-                return Math.round((notesArray[baseIndex] + notesArray[baseIndex + 1]) / 2);
-            }
-            return notesArray[baseIndex];
-        } else if (mode === 'arch') {
-            let archVal = Math.sin((stepIndex % 16) / 16 * Math.PI);
-            let idx = Math.floor(archVal * (total - 1));
-            return notesArray[idx];
-        } else if (mode === 'updown') {
-            let cycle = [];
-            for (let i = 0; i < total; i++) cycle.push(i);
-            for (let i = total - 2; i > 0; i--) cycle.push(i);
-            return notesArray[cycle[stepIndex % cycle.length]];
-        } else if (mode === 'pentatonic') {
-            let baseNote = notesArray[stepIndex % total];
-            let scaleAdditions = [0, 2, 4, 7, 9];
-            return baseNote + scaleAdditions[stepIndex % scaleAdditions.length];
+        // 1. Natural Phrasing: Rests on beat 3-4 of Bars 4 and 8 for "vocal breathing"
+        if ((bar === 3 || bar === 7) && stepInBar >= 2) {
+            return null; 
         }
 
-        return notesArray[stepIndex % total];
+        let notesArray = [...chordNotes].sort((a, b) => a - b);
+        const root = notesArray[0];
+
+        // 2. Add Color Extensions (9th = root + 14, 11th = root + 17)
+        let extendedScale = [
+            ...notesArray,
+            root + 14, // 9th extension
+            root + 17  // 11th extension
+        ].sort((a, b) => a - b);
+
+        // 3. 8-Bar Dynamic Climax Arc (Transpose higher during Bars 5-6)
+        let registerOffset = (bar === 4 || bar === 5) ? 12 : 0; 
+
+        // 4. Expressive Contour Curves
+        if (mode === 'arch' || mode === 'stepwise') {
+            const phrasePattern = [0, 1, 3, 2, 4, 2, 1, 0];
+            const noteIndex = phrasePattern[globalStep % phrasePattern.length] % extendedScale.length;
+            return extendedScale[noteIndex] + registerOffset;
+        } 
+        else if (mode === 'pentatonic') {
+            const pentatonicOffsets = [0, 2, 4, 7, 9, 12, 14];
+            const index = (globalStep * 2 + (bar % 2)) % pentatonicOffsets.length;
+            return root + pentatonicOffsets[index] + registerOffset;
+        } else if (mode === 'updown') {
+            let cycle = [];
+            for (let i = 0; i < extendedScale.length; i++) cycle.push(i);
+            for (let i = extendedScale.length - 2; i > 0; i--) cycle.push(i);
+            return extendedScale[cycle[globalStep % cycle.length]] + registerOffset;
+        }
+
+        return extendedScale[globalStep % extendedScale.length] + registerOffset;
     }
 
     // --- RHYTHMIC GROOVE PATTERN DETECTOR ---
@@ -674,7 +686,7 @@
             });
         }
 
-        // Play Melody Note (Lead line offset +12 semitones to avoid pad overlap)
+        // Play Melody Note
         const groove = getGrooveGate(stepInBar, grooveStyle);
 
         if (groove.play && arpSetting !== 'off') {
@@ -714,7 +726,7 @@
         }, delay);
     }
 
-    // --- ACCURATE DUAL-CHANNEL ZERO-CLASH MIDI GENERATOR ---
+    // --- DUAL-CHANNEL MULTI-TRACK MIDI GENERATOR ---
     document.getElementById('downloadMidiBtn').addEventListener('click', () => {
         const currentBpm = parseInt(document.getElementById('tempo').value) || 100;
         const vLeadingMode = document.getElementById('voiceLeading').value;
@@ -770,7 +782,7 @@
                     if (melodyNote !== null) {
                         activeMelodyEvents.push({
                             startTicks: stepTicks,
-                            note: melodyNote + 12, // Transposed up 1 octave to sit above pad range
+                            note: melodyNote + 12,
                             vel: Math.min(127, Math.round(groove.vel * 600) + 20)
                         });
                     }
@@ -798,7 +810,7 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sustained_progression_${totalTargetBars}bars.mid`;
+        a.download = `expressive_progression_${totalTargetBars}bars.mid`;
         a.click();
         URL.revokeObjectURL(url);
     });
@@ -831,7 +843,6 @@
                 lastTime = e.time;
                 bytes.push(...writeVarInt(deltaTime));
                 
-                // Assign explicit MIDI Channel (0x90 = Ch 1, 0x91 = Ch 2)
                 const channel = e.channel || 0;
                 if (e.type === 'noteOn') {
                     bytes.push(0x90 | channel, e.note, e.vel);
@@ -866,7 +877,7 @@
         ];
 
         const trk1 = buildTrackBytes(tracks[0], "Chords Pad");
-        const trk2 = buildTrackBytes(tracks[1], "Legato Melody");
+        const trk2 = buildTrackBytes(tracks[1], "Expressive Melody");
 
         return new Uint8Array([...header, ...tempoTrack, ...trk1, ...trk2]);
     }
