@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Chord Arranger & Arpeggiator Engine</title>
+    <style>
+        body { font-family: sans-serif; background: #121214; color: #e0e0e6; padding: 20px; }
+        .container { max-width: 850px; margin: 0 auto; }
+        .card { background: #1a1a1e; padding: 20px; border-radius: 8px; border: 1px solid #2d2d34; margin-bottom: 20px; }
+        h3 { color: #00bcd4; margin-top: 0; }
+        button { background: #00bcd4; color: #121214; border: none; padding: 12px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        button:hover { background: #0097a7; }
+        select, input { background: #2d2d34; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 4px; font-size: 14px; }
+        .chord-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .control-group { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px; align-items: center; }
+        .visualizer { display: flex; gap: 5px; height: 30px; margin-top: 15px; }
+        .bar { flex: 1; background: #2d2d34; border-radius: 3px; transition: background 0.1s; }
+        .bar.active { background: #00bcd4; box-shadow: 0 0 10px #00bcd4; }
+        .info { color: #888; font-size: 0.9em; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Advanced Chord Arranger & Arpeggiator Engine</h1>
+    <p>An upgraded engine implementing close-position voice leading (inversions) and custom rhythmic arpeggiation patterns.</p>
+
+    <div class="card">
+        <h3>1. Configuration & Progression</h3>
+        <div id="chordInputs"></div>
+        
+        <div class="control-group">
+            <div>
+                <label for="tempo">BPM: </label>
+                <input type="number" id="tempo" value="110" min="60" max="200" style="width: 60px;">
+            </div>
+            <div>
+                <label for="voiceLeading">Voice Leading: </label>
+                <select id="voiceLeading">
+                    <option value="smooth" selected>Smooth Inversions (Closest Position)</option>
+                    <option value="root">Standard (Root Position Only)</option>
+                </select>
+            </div>
+            <div>
+                <label for="arpMode">Arpeggiator: </label>
+                <select id="arpMode">
+                    <option value="off" selected>Off (Sustained Pads)</option>
+                    <option value="up">Up</option>
+                    <option value="down">Down</option>
+                    <option value="updown">Up-Down</option>
+                </select>
+            </div>
+        </div>
+        <div style="margin-top: 20px;">
+            <button id="playBtn">Generate & Play Arrangement</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>2. Engine Status Monitor</h3>
+        <p>Current Step: <span id="currentStatus" style="color: #00bcd4; font-weight: bold;">Stopped</span></p>
+        <div class="visualizer" id="playbackVisualizer">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+        <div class="info">Each block represents one 16th note beat in the 4-bar loop cycle.</div>
+    </div>
+</div>
+
+<script>
+    // --- MUSICAL UTILITIES & DICTIONARY ---
+    const noteToMidi = { 'C': 60, 'C#': 61, 'D': 62, 'D#': 63, 'E': 64, 'F': 65, 'F#': 66, 'G': 67, 'G#': 68, 'A': 69, 'A#': 70, 'B': 71 };
+    
+    const chordIntervals = {
+        'Major':,       
+        'Minor':,       
+        'Major7':,      
+        'Minor7':,      
+        'Dominant7': [0, 4, 7, 10]    
+    };
+
+    const defaultChords = [
+        { root: 'C', type: 'Major' },
+        { root: 'A', type: 'Minor' },
+        { root: 'F', type: 'Major' },
+        { root: 'G', type: 'Dominant7' }
+    ];
+
+    // --- SETUP USER INTERFACE ---
+    const chordInputsContainer = document.getElementById('chordInputs');
+    defaultChords.forEach((chord, index) => {
+        const row = document.createElement('div');
+        row.className = 'chord-row';
+        row.innerHTML = `
+            <span>Bar ${index + 1}:</span>
+            <select id="root-${index}">
+                ${Object.keys(noteToMidi).map(n => `<option value="${n}" ${n === chord.root ? 'selected' : ''}>${n}</option>`).join('')}
+            </select>
+            <select id="type-${index}">
+                ${Object.keys(chordIntervals).map(t => `<option value="${t}" ${t === chord.type ? 'selected' : ''}>${t}</option>`).join('')}
+            </select>
+        `;
+        chordInputsContainer.appendChild(row);
+    });
+
+    // --- SCHEDULER & AUDIO STATE ---
+    let audioCtx = null;
+    let isRunning = false;
+    let timeoutId = null;
+    let bpm, startTime, current16thNote;
+    let queueSeconds = 0.05;
+
+    // Track previous note configurations for smooth voice leading
+    let lastNotesPlayed = [];
+
+    const playBtn = document.getElementById('playBtn');
+    const statusTxt = document.getElementById('currentStatus');
+    const visualBars = document.getElementById('playbackVisualizer').children;
+
+    playBtn.addEventListener('click', () => {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (isRunning) { stopArrangement(); } else { startArrangement(); }
+    });
+
+    function startArrangement() {
+        isRunning = true;
+        playBtn.innerText = "Stop Arrangement";
+        bpm = parseInt(document.getElementById('tempo').value);
+        current16thNote = 0;
+        startTime = audioCtx.currentTime + 0.1;
+        lastNotesPlayed = []; // Clear history on start
+        schedulerLoop();
+    }
+
+    function stopArrangement() {
+        isRunning = false;
+        playBtn.innerText = "Generate & Play Arrangement";
+        statusTxt.innerText = "Stopped";
+        clearTimeout(timeoutId);
+        for (let bar of visualBars) bar.className = 'bar';
+    }
+
+    function schedulerLoop() {
+        while (startTime < audioCtx.currentTime + queueSeconds) {
+            scheduleAudioForStep(current16thNote, startTime);
+            updateVisualsOnTime(current16thNote, startTime);
+            
+            const secondsPer16th = 60.0 / bpm / 4.0;
+            startTime += secondsPer16th;
+            
+            current16thNote = (current16thNote + 1) % 16;
+        }
+        if (isRunning) { timeoutId = setTimeout(schedulerLoop, 25); }
+    }
+
+    // --- VOICE LEADING LOGIC ENGINE (CHORD INVERSIONS) ---
+    function getVoiceLedNotes(rootMidi, intervals, useSmooth) {
+        // Generate root position chord (Centered around MIDI octave 3/4)
+        let chordNotes = intervals.map(interval => rootMidi - 12 + interval);
+
+        if (!useSmooth || lastNotesPlayed.length === 0) {
+            lastNotesPlayed = [...chordNotes];
+            return chordNotes;
+        }
+
+        // Compute average point of the last chord to establish an anchor
+        const lastMidpoint = lastNotesPlayed.reduce((a, b) => a + b, 0) / lastNotesPlayed.length;
+
+        // Shift entire chord up or down by octaves until it is closest to the last chord's center
+        let attempts = 0;
+        while (attempts < 4) {
+            let currentMidpoint = chordNotes.reduce((a, b) => a + b, 0) / chordNotes.length;
+            if (currentMidpoint < lastMidpoint - 6) {
+                chordNotes = chordNotes.map(n => n + 12); // Shift up
+            } else if (currentMidpoint > lastMidpoint + 6) {
+                chordNotes = chordNotes.map(n => n - 12); // Shift down
+            } else {
+                break;
+            }
+            attempts++;
+        }
+
+        // Fine-tune individual voices (invert notes aggressively for tighter voice leading)
+        // Sort from lowest to highest
+        chordNotes.sort((a, b) => a - b);
+        
+        lastNotesPlayed = [...chordNotes];
+        return chordNotes;
+    }
+
+    // --- ARPEGGIATION SEQUENCER MODULE ---
+    function getArpNoteForStep(stepInBar, chordNotes, mode) {
+        if (mode === 'off') return null;
+        
+        let notesArray = [...chordNotes];
+        // Sort to ensure clean directional movements
+        notesArray.sort((a, b) => a - b); 
+
+        let index = 0;
+        if (mode === 'up') {
+            index = stepInBar % notesArray.length;
+        } else if (mode === 'down') {
+            notesArray.reverse();
+            index = stepInBar % notesArray.length;
+        } else if (mode === 'updown') {
+            // Create loop cycle array (e.g. Note 0, 1, 2, 3, 2, 1)
+            let cycle = [];
+            for (let i = 0; i < notesArray.length; i++) cycle.push(i);
+            for (let i = notesArray.length - 2; i > 0; i--) cycle.push(i);
+            
+            let cycleIndex = stepInBar % cycle.length;
+            index = cycle[cycleIndex];
+        }
+
+        return notesArray[index];
+    }
+
+    // --- MAIN AUDIO ROUTING & GENERATION ---
+    function scheduleAudioForStep(step, time) {
+        const currentBar = Math.floor(step / 4);
+        const stepInBar = step % 4; // Beat steps 0, 1, 2, 3
+        const extendedStepInBar = step % 16; // Continual 16th tracker
+
+        const rootName = document.getElementById(`root-${currentBar}`).value;
+        const chordType = document.getElementById(`type-${currentBar}`).value;
+        const vLeadingMode = document.getElementById('voiceLeading').value;
+        const arpSetting = document.getElementById('arpMode').value;
+        
+        const rootMidi = noteToMidi[rootName];
