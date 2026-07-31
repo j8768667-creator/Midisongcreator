@@ -14,7 +14,7 @@
             margin: 0;
             -webkit-tap-highlight-color: transparent;
         }
-        .container { max-width: 900px; margin: 0 auto; }
+        .container { max-width: 950px; margin: 0 auto; }
         .card { background: #1a1a1e; padding: 20px; border-radius: 12px; border: 1px solid #2d2d34; margin-bottom: 20px; }
         h3 { color: #00bcd4; margin-top: 0; margin-bottom: 15px; }
         
@@ -51,7 +51,7 @@
 
         .chord-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 10px;
             margin-bottom: 15px;
         }
@@ -80,12 +80,12 @@
         .chord-cell-selects select {
             flex: 1;
             padding: 6px;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         .control-group { 
             display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
             gap: 15px; 
             margin-top: 15px; 
         }
@@ -101,7 +101,6 @@
             color: #aaa;
         }
 
-        /* 32 Step Visualizer for 8 Bars */
         .visualizer { 
             display: grid; 
             grid-template-columns: repeat(32, 1fr); 
@@ -152,17 +151,17 @@
 
 <div class="container">
     <h1>Advanced 8-Bar Chord & Melody Engine</h1>
-    <p>Voice-leading chord arranger with fluid melodic arpeggiation shaping and multi-track MIDI export.</p>
+    <p>Voice-leading chord arranger with expressive melodic motion, expanded chord types, and multi-track MIDI export.</p>
 
     <div class="card">
         <h3>1. Progression & Manual Input</h3>
         <div class="file-controls">
             <label style="font-weight: bold; font-size: 0.9em;">Enter 8 Chords (Comma Separated):</label>
             <div class="manual-input-group">
-                <input type="text" id="manualChordText" placeholder="C Major, A Minor, F Major, G Dominant7, E Minor, A Minor, D Minor, G Major">
+                <input type="text" id="manualChordText" placeholder="Bb Minor, F Major, C Major, F#m7b5, Bbdim, Eb Major, C Sus4, G Major">
                 <button class="secondary" id="parseManualBtn">Apply Text</button>
             </div>
-            <div class="info">Types: Major, Minor, Major7, Minor7, Dominant7</div>
+            <div class="info">Supports: Major, Minor, Major7, Minor7, Dominant7, Dim, Dim7, m7b5, Aug, Sus2, Sus4, Major6, Minor6, Add9</div>
             
             <hr style="border: 0; border-top: 1px solid #333; width: 100%; margin: 5px 0;">
 
@@ -176,7 +175,7 @@
         <h3>2. 8-Bar Chord Setup</h3>
         <div id="chordInputs" class="chord-grid"></div>
         
-        <h3>3. Melody & Arp Sculpting Controls</h3>
+        <h3>3. Flowing Melody & Rhythm Controls</h3>
         <div class="control-group">
             <div class="control-item">
                 <label for="tempo">BPM</label>
@@ -190,39 +189,38 @@
                 </select>
             </div>
             <div class="control-item">
-                <label for="arpMode">Melody Pattern</label>
+                <label for="arpMode">Melodic Motion Style</label>
                 <select id="arpMode">
                     <option value="off">Off (Pad Chords Only)</option>
-                    <option value="up">Up</option>
-                    <option value="down">Down</option>
-                    <option value="updown" selected>Up-Down (Smooth Cycle)</option>
-                    <option value="inout">In-Out (Centered Expansion)</option>
-                    <option value="bounce">Chord Bounce</option>
-                    <option value="random">Random Walk</option>
+                    <option value="stepwise" selected>Stepwise Walk (Passing Tones)</option>
+                    <option value="arch">Contour Arch (Smooth Waves)</option>
+                    <option value="updown">Up-Down Flow</option>
+                    <option value="inout">In-Out (Centered)</option>
+                    <option value="pentatonic">Pentatonic Glide</option>
                 </select>
             </div>
             <div class="control-item">
-                <label for="arpRate">Arp Speed / Note Resolution</label>
-                <select id="arpRate">
-                    <option value="8n">1/8 Notes</option>
-                    <option value="16n" selected>1/16 Notes</option>
-                    <option value="16t">1/16 Triplets</option>
+                <label for="rhythmGroove">Rhythmic Feel / Groove</label>
+                <select id="rhythmGroove">
+                    <option value="legato16">Continuous Legato (16th Flow)</option>
+                    <option value="syncopated" selected>Syncopated Offbeats (Lyrical)</option>
+                    <option value="dotted8">Dotted 8th Glide</option>
+                    <option value="clave">Latin / Clave Groove</option>
+                    <option value="straight8">Straight 8ths</option>
                 </select>
             </div>
             <div class="control-item">
                 <label for="octaveRange">Melodic Octave Spread</label>
                 <select id="octaveRange">
-                    <option value="1" selected>1 Octave (Tight)</option>
+                    <option value="1" selected>1 Octave (Smooth & Tight)</option>
                     <option value="2">2 Octaves (Wide)</option>
-                    <option value="3">3 Octaves (Extended)</option>
                 </select>
             </div>
             <div class="control-item">
-                <label for="noteGate">Gate Length (Articulation)</label>
-                <select id="noteGate">
-                    <option value="0.4">Pluck (Short)</option>
-                    <option value="0.75" selected>Staccato / Standard</option>
-                    <option value="0.95">Legato (Fluid / Connected)</option>
+                <label for="humanDynamics">Dynamics / Accents</label>
+                <select id="humanDynamics">
+                    <option value="on" selected>Human Accents (Beat 1/3 Strong)</option>
+                    <option value="flat">Flat Velocity</option>
                 </select>
             </div>
             <div class="control-item">
@@ -237,7 +235,7 @@
 
         <div class="btn-group">
             <button id="playBtn">Generate & Play 8-Bar Loop</button>
-            <button class="secondary" id="previewBtn">Preview 8-Bar Progression</button>
+            <button class="secondary" id="previewBtn">Preview Progression</button>
             <button class="secondary" id="downloadMidiBtn">Download Multi-Track MIDI</button>
         </div>
     </div>
@@ -251,25 +249,51 @@
 </div>
 
 <script>
-    // --- MUSICAL UTILITIES & DICTIONARY ---
-    const noteToMidi = { 'C': 60, 'C#': 61, 'D': 62, 'D#': 63, 'E': 64, 'F': 65, 'F#': 66, 'G': 67, 'G#': 68, 'A': 69, 'A#': 70, 'B': 71 };
+    // --- EXPANDED MUSICAL UTILITIES & DICTIONARIES ---
+    const noteToMidi = { 
+        'C': 60, 'C#': 61, 'Db': 61, 'D': 62, 'D#': 63, 'Eb': 63, 
+        'E': 64, 'F': 65, 'F#': 66, 'Gb': 66, 'G': 67, 'G#': 68, 
+        'Ab': 68, 'A': 69, 'A#': 70, 'Bb': 70, 'B': 71 
+    };
     
+    // Comprehensive Chord Types
     const chordIntervals = {
         'Major': [0, 4, 7],       
         'Minor': [0, 3, 7],       
         'Major7': [0, 4, 7, 11],      
         'Minor7': [0, 3, 7, 10],      
-        'Dominant7': [0, 4, 7, 10]    
+        'Dominant7': [0, 4, 7, 10],
+        'Diminished': [0, 3, 6],
+        'Diminished7': [0, 3, 6, 9],
+        'm7b5': [0, 3, 6, 10],
+        'Augmented': [0, 4, 8],
+        'Sus2': [0, 2, 7],
+        'Sus4': [0, 5, 7],
+        'Major6': [0, 4, 7, 9],
+        'Minor6': [0, 3, 7, 9],
+        'Add9': [0, 4, 7, 14]
+    };
+
+    // Alias mapper for flexible manual string inputs (e.g. Bbdim, m7b5, aug)
+    const chordAliases = {
+        'maj': 'Major', 'm': 'Minor', 'min': 'Minor',
+        'maj7': 'Major7', 'min7': 'Minor7', 'm7': 'Minor7',
+        '7': 'Dominant7', 'dom7': 'Dominant7',
+        'dim': 'Diminished', 'dim7': 'Diminished7',
+        'halfdim': 'm7b5', 'm7b5': 'm7b5',
+        'aug': 'Augmented', 'sus2': 'Sus2', 'sus4': 'Sus4',
+        'maj6': 'Major6', 'min6': 'Minor6', 'm6': 'Minor6',
+        'add9': 'Add9'
     };
 
     let defaultChords = [
-        { root: 'C', type: 'Major' },
-        { root: 'A', type: 'Minor' },
+        { root: 'Bb', type: 'Minor' },
         { root: 'F', type: 'Major' },
-        { root: 'G', type: 'Dominant7' },
-        { root: 'E', type: 'Minor' },
-        { root: 'A', type: 'Minor' },
-        { root: 'D', type: 'Minor' },
+        { root: 'C', type: 'Major' },
+        { root: 'F#', type: 'm7b5' },
+        { root: 'Bb', type: 'Diminished' },
+        { root: 'Eb', type: 'Major' },
+        { root: 'C', type: 'Sus4' },
         { root: 'G', type: 'Major' }
     ];
 
@@ -319,27 +343,32 @@
 
         let parsed = [];
         for (let i = 0; i < rawChords.length; i++) {
-            const parts = rawChords[i].trim().split(/\s+/);
-            if (parts.length < 2) {
-                alert(`Bar ${i + 1} format invalid. Use "Root Type" format like "C Major".`);
+            const str = rawChords[i].trim();
+            let matchedRoot = null;
+            let typePart = '';
+
+            // Extract Root (handling flats/sharps e.g., Bb, F#, Eb)
+            const sortedRoots = Object.keys(noteToMidi).sort((a,b) => b.length - a.length);
+            for (let r of sortedRoots) {
+                if (str.toUpperCase().startsWith(r.toUpperCase())) {
+                    matchedRoot = r;
+                    typePart = str.substring(r.length).trim().toLowerCase();
+                    break;
+                }
+            }
+
+            if (!matchedRoot) {
+                alert(`Invalid root note in bar ${i + 1}: "${str}"`);
                 return;
             }
 
-            let root = parts[0].toUpperCase();
-            let typeInput = parts.slice(1).join('').toLowerCase();
-
-            if (!noteToMidi[root]) {
-                alert(`Invalid root note "${parts[0]}" in bar ${i + 1}.`);
-                return;
-            }
-
-            let matchedType = Object.keys(chordIntervals).find(t => t.toLowerCase() === typeInput);
+            let matchedType = chordAliases[typePart] || Object.keys(chordIntervals).find(t => t.toLowerCase() === typePart);
             if (!matchedType) {
-                alert(`Invalid chord type "${parts.slice(1).join(' ')}" in bar ${i + 1}.`);
-                return;
+                alert(`Unrecognized chord type in bar ${i + 1}: "${typePart || 'Standard'}". Defaults to Major or Minor.`);
+                matchedType = 'Major';
             }
 
-            parsed.push({ root: root, type: matchedType });
+            parsed.push({ root: matchedRoot, type: matchedType });
         }
 
         renderChordInputs(parsed);
@@ -357,9 +386,8 @@
                     renderChordInputs(imported);
                     alert("8-Bar Progression loaded successfully!");
                 } else if (Array.isArray(imported) && imported.length === 4) {
-                    // Auto-expand 4-bar progression to 8 bars by repeating
                     renderChordInputs([...imported, ...imported]);
-                    alert("4-Bar Progression loaded and extended to 8 bars!");
+                    alert("4-Bar Progression extended to 8 bars!");
                 } else {
                     alert("Expected a JSON array containing 4 or 8 chord objects.");
                 }
@@ -491,29 +519,37 @@
         return chordNotes;
     }
 
-    // --- ENHANCED MELODY & ARPEGGIATION SEQUENCER ---
-    function getArpNoteForStep(stepIndex, chordNotes, mode, octaveSpread) {
+    // --- ADVANCED MELODIC MOTION & PASSING TONE ALGORITHM ---
+    function getFlowingMelodyNote(stepIndex, chordNotes, mode, octaveSpread) {
         if (mode === 'off') return null;
 
-        // Build expanded note pitch array based on Octave Spread setting
-        let expandedNotes = [];
+        let notesArray = [];
         for (let oct = 0; oct < octaveSpread; oct++) {
-            chordNotes.forEach(note => expandedNotes.push(note + (oct * 12)));
+            chordNotes.forEach(note => notesArray.push(note + (oct * 12)));
         }
-        expandedNotes.sort((a, b) => a - b);
+        notesArray.sort((a, b) => a - b);
 
-        let index = 0;
-        const total = expandedNotes.length;
+        const total = notesArray.length;
 
-        if (mode === 'up') {
-            index = stepIndex % total;
-        } else if (mode === 'down') {
-            index = (total - 1) - (stepIndex % total);
+        if (mode === 'stepwise') {
+            // Stepwise Walk with scalar passing tones
+            let baseIndex = Math.floor(stepIndex / 2) % total;
+            let isPassingStep = (stepIndex % 2 === 1);
+            if (isPassingStep && baseIndex < total - 1) {
+                // Return half-step/whole-step passing tone between adjacent chord notes
+                return Math.round((notesArray[baseIndex] + notesArray[baseIndex + 1]) / 2);
+            }
+            return notesArray[baseIndex];
+        } else if (mode === 'arch') {
+            // Smooth Sine-Wave Arch Contour
+            let archVal = Math.sin((stepIndex % 16) / 16 * Math.PI);
+            let idx = Math.floor(archVal * (total - 1));
+            return notesArray[idx];
         } else if (mode === 'updown') {
             let cycle = [];
             for (let i = 0; i < total; i++) cycle.push(i);
             for (let i = total - 2; i > 0; i--) cycle.push(i);
-            index = cycle[stepIndex % cycle.length];
+            return notesArray[cycle[stepIndex % cycle.length]];
         } else if (mode === 'inout') {
             let mid = Math.floor(total / 2);
             let cycle = [mid];
@@ -521,14 +557,49 @@
                 if (mid - i >= 0) cycle.push(mid - i);
                 if (mid + i < total) cycle.push(mid + i);
             }
-            index = cycle[stepIndex % cycle.length];
-        } else if (mode === 'bounce') {
-            index = (stepIndex % 2 === 0) ? 0 : (stepIndex % total);
-        } else if (mode === 'random') {
-            index = Math.floor(Math.sin(stepIndex * 999) * total + total) % total;
+            return notesArray[cycle[stepIndex % cycle.length]];
+        } else if (mode === 'pentatonic') {
+            let baseNote = notesArray[stepIndex % total];
+            let scaleAdditions = [0, 2, 4, 7, 9];
+            return baseNote + scaleAdditions[stepIndex % scaleAdditions.length];
         }
 
-        return expandedNotes[index];
+        return notesArray[stepIndex % total];
+    }
+
+    // --- RHYTHMIC GROOVE PATTERN DETECTOR ---
+    function getGrooveGate(stepInBar, feelStyle) {
+        // Returns { play: boolean, durationMultiplier: number, velocity: number }
+        if (feelStyle === 'legato16') {
+            return { play: true, duration: 1.1, vel: (stepInBar % 4 === 0) ? 0.16 : 0.11 };
+        } else if (feelStyle === 'syncopated') {
+            const syncPattern = [
+                { play: true, duration: 1.8, vel: 0.18 }, // Step 0 (Beat 1)
+                { play: false },                           // Step 1
+                { play: true, duration: 1.2, vel: 0.11 }, // Step 2 (Offbeat)
+                { play: true, duration: 1.5, vel: 0.14 }  // Step 3 (Syncopated)
+            ];
+            return syncPattern[stepInBar];
+        } else if (feelStyle === 'dotted8') {
+            const dottedPattern = [
+                { play: true, duration: 2.8, vel: 0.18 },
+                { play: false },
+                { play: false },
+                { play: true, duration: 2.8, vel: 0.13 }
+            ];
+            return dottedPattern[stepInBar];
+        } else if (feelStyle === 'clave') {
+            const clavePattern = [
+                { play: true, duration: 1.8, vel: 0.18 },
+                { play: false },
+                { play: true, duration: 1.8, vel: 0.14 },
+                { play: false }
+            ];
+            return clavePattern[stepInBar];
+        } else {
+            // Straight 8ths
+            return { play: stepInBar % 2 === 0, duration: 1.8, vel: 0.14 };
+        }
     }
 
     // --- AUDIO GENERATION ---
@@ -561,10 +632,10 @@
         const chordType = document.getElementById(`type-${currentBar}`).value;
         const vLeadingMode = document.getElementById('voiceLeading').value;
         const arpSetting = document.getElementById('arpMode').value;
-        const arpRate = document.getElementById('arpRate').value;
+        const grooveStyle = document.getElementById('rhythmGroove').value;
         const octaveSpread = parseInt(document.getElementById('octaveRange').value);
-        const gateFactor = parseFloat(document.getElementById('noteGate').value);
-        
+        const humanizeVel = document.getElementById('humanDynamics').value === 'on';
+
         const rootMidi = noteToMidi[rootName];
         const chordNotes = getVoiceLedNotes(rootMidi, chordIntervals[chordType], vLeadingMode === 'smooth');
 
@@ -573,26 +644,17 @@
             chordNotes.forEach(note => playSynthTone(note, secondsPer16th * 4, time, 'triangle', 0.05));
         }
 
-        // Determine melodic step triggering based on Rate selection
-        let triggerArp = false;
-        let subStepIndex = step;
+        // Melodic Rhythmic Groove Execution
+        const groove = getGrooveGate(stepInBar, grooveStyle);
 
-        if (arpRate === '16n') {
-            triggerArp = true;
-            subStepIndex = step;
-        } else if (arpRate === '8n') {
-            triggerArp = (step % 2 === 0);
-            subStepIndex = Math.floor(step / 2);
-        } else if (arpRate === '16t') {
-            triggerArp = true;
-            subStepIndex = step;
-        }
+        if (groove.play && arpSetting !== 'off') {
+            const melodyNote = getFlowingMelodyNote(step, chordNotes, arpSetting, octaveSpread);
+            if (melodyNote !== null) {
+                const noteDuration = secondsPer16th * groove.duration;
+                let volume = groove.vel;
+                if (!humanizeVel) volume = 0.12;
 
-        if (triggerArp) {
-            const arpNote = getArpNoteForStep(subStepIndex, chordNotes, arpSetting, octaveSpread);
-            if (arpNote !== null) {
-                const noteDuration = secondsPer16th * (arpRate === '8n' ? 2 : 1) * gateFactor;
-                playSynthTone(arpNote + 12, noteDuration, time, 'sine', 0.12);
+                playSynthTone(melodyNote + 12, noteDuration, time, 'sine', volume);
             }
         }
     }
@@ -608,12 +670,12 @@
         }, delay);
     }
 
-    // --- MULTI-TRACK MIDI FILE GENERATOR WITH EXTENDED LENGTH ---
+    // --- MULTI-TRACK MIDI FILE GENERATOR WITH EXPRESSIVE RHYTHM ---
     document.getElementById('downloadMidiBtn').addEventListener('click', () => {
         const currentBpm = parseInt(document.getElementById('tempo').value) || 110;
         const vLeadingMode = document.getElementById('voiceLeading').value;
         const arpSetting = document.getElementById('arpMode').value;
-        const arpRate = document.getElementById('arpRate').value;
+        const grooveStyle = document.getElementById('rhythmGroove').value;
         const octaveSpread = parseInt(document.getElementById('octaveRange').value);
         const totalTargetBars = parseInt(document.getElementById('exportLength').value) || 8;
         const chords = getSelectedChords();
@@ -625,7 +687,6 @@
         let track2Events = [];
         let lastNotes = [];
 
-        // Repeat the 8-bar progression to fill target bar count
         for (let bar = 0; bar < totalTargetBars; bar++) {
             const chordIndex = bar % 8;
             const rootMidi = noteToMidi[chords[chordIndex].root];
@@ -654,24 +715,20 @@
                 track1Events.push({ time: barStartTicks + (ticksPerQuarter * 4) - 10, type: 'noteOff', note: note, vel: 0 });
             });
 
-            // Track 2: Arpeggiated Melody
+            // Track 2: Flowing Arpeggiated Melody
             for (let step = 0; step < 4; step++) {
                 const globalStep = (bar * 4) + step;
-                let trigger = true;
-                let stepSubIndex = globalStep;
+                const groove = getGrooveGate(step, grooveStyle);
 
-                if (arpRate === '8n') {
-                    trigger = (step % 2 === 0);
-                    stepSubIndex = Math.floor(globalStep / 2);
-                }
-
-                if (trigger) {
+                if (groove.play && arpSetting !== 'off') {
                     const stepTicks = barStartTicks + (step * ticksPer16th);
-                    const arpNote = getArpNoteForStep(stepSubIndex, chordNotes, arpSetting, octaveSpread);
-                    if (arpNote !== null) {
-                        const noteLengthTicks = (arpRate === '8n' ? ticksPer16th * 2 : ticksPer16th) - 10;
-                        track2Events.push({ time: stepTicks, type: 'noteOn', note: arpNote + 12, vel: 95 });
-                        track2Events.push({ time: stepTicks + noteLengthTicks, type: 'noteOff', note: arpNote + 12, vel: 0 });
+                    const melodyNote = getFlowingMelodyNote(globalStep, chordNotes, arpSetting, octaveSpread);
+                    if (melodyNote !== null) {
+                        const noteLengthTicks = Math.round(ticksPer16th * groove.duration) - 10;
+                        const midiVel = Math.round(groove.vel * 700);
+
+                        track2Events.push({ time: stepTicks, type: 'noteOn', note: melodyNote + 12, vel: midiVel });
+                        track2Events.push({ time: stepTicks + noteLengthTicks, type: 'noteOff', note: melodyNote + 12, vel: 0 });
                     }
                 }
             }
@@ -747,7 +804,7 @@
         ];
 
         const trk1 = buildTrackBytes(tracks[0], "Chords Pad");
-        const trk2 = buildTrackBytes(tracks[1], "Arpeggiator Melody");
+        const trk2 = buildTrackBytes(tracks[1], "Flowing Melody");
 
         return new Uint8Array([...header, ...tempoTrack, ...trk1, ...trk2]);
     }
