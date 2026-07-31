@@ -252,7 +252,7 @@
         <h3>4. Engine Status Monitor</h3>
         <p>Current Step: <span id="currentStatus" style="color: #00bcd4; font-weight: bold;">Stopped</span></p>
         <div class="visualizer" id="playbackVisualizer"></div>
-        <div class="info">Each block represents one 16th note beat across the 8-bar progression (32 steps total).</div>
+        <div class="info">Each block represents one quarter-note beat slot in the 8-bar progression (32 steps total).</div>
     </div>
 </div>
 
@@ -264,7 +264,6 @@
         'Ab': 68, 'A': 69, 'A#': 70, 'Bb': 70, 'B': 71 
     };
     
-    // Fixed syntax error by fully defining interval arrays
     const chordIntervals = {
         'Major': [0, 4, 7],       
         'Minor': [0, 3, 7],       
@@ -491,7 +490,7 @@
     let isRunning = false;
     let isPreview = false;
     let timeoutId = null;
-    let bpm, startTime, current16thNote;
+    let bpm, startTime, currentStep;
     let queueSeconds = 0.05;
     let lastNotesPlayed = [];
 
@@ -515,7 +514,7 @@
         isRunning = true;
         playBtn.innerText = "Stop Arrangement";
         bpm = parseInt(document.getElementById('tempo').value) || 100;
-        current16thNote = 0;
+        currentStep = 0;
         startTime = audioCtx.currentTime + 0.1;
         lastNotesPlayed = [];
         schedulerLoop();
@@ -531,18 +530,18 @@
 
     function schedulerLoop() {
         while (startTime < audioCtx.currentTime + queueSeconds) {
-            if (isPreview && current16thNote === 32) {
+            if (isPreview && currentStep === 32) {
                 stopArrangement();
                 return;
             }
             
-            scheduleAudioForStep(current16thNote, startTime);
-            updateVisualsOnTime(current16thNote, startTime);
+            scheduleAudioForStep(currentStep, startTime);
+            updateVisualsOnTime(currentStep, startTime);
             
-            const secondsPer16th = 60.0 / bpm / 4.0;
-            startTime += secondsPer16th;
+            const secondsPerQuarter = 60.0 / bpm;
+            startTime += secondsPerQuarter;
             
-            current16thNote = (current16thNote + 1) % (isPreview ? 33 : 32);
+            currentStep = (currentStep + 1) % (isPreview ? 33 : 32);
         }
         if (isRunning) { timeoutId = setTimeout(schedulerLoop, 25); }
     }
@@ -640,8 +639,8 @@
 
         const currentBar = Math.floor(step / 4);
         const stepInBar = step % 4;
-        const secondsPer16th = 60.0 / bpm / 4.0;
-        const barDuration = secondsPer16th * 4;
+        const secondsPerQuarter = 60.0 / bpm;
+        const barDuration = secondsPerQuarter * 4;
 
         const rootName = document.getElementById(`root-${currentBar}`).value;
         const chordType = document.getElementById(`type-${currentBar}`).value;
@@ -681,20 +680,20 @@
         if (groove.play && arpSetting !== 'off') {
             const melodyNote = getFlowingMelodyNote(step, chordNotes, arpSetting);
             if (melodyNote !== null) {
-                let noteDuration = secondsPer16th * groove.durationMult;
+                let noteDuration = secondsPerQuarter * groove.durationMult;
                 let attack = 0.04;
                 let release = 0.2;
 
                 if (melodyArt === 'legato') {
-                    noteDuration *= 1.15;
+                    noteDuration *= 1.25;
                     attack = 0.03;
                     release = 0.25;
                 } else if (melodyArt === 'glide') {
-                    noteDuration *= 1.4;
+                    noteDuration *= 1.5;
                     attack = 0.08;
                     release = 0.45;
                 } else if (melodyArt === 'staccato') {
-                    noteDuration *= 0.5;
+                    noteDuration *= 0.4;
                     attack = 0.01;
                     release = 0.08;
                 }
@@ -711,7 +710,7 @@
             for (let i = 0; i < visualBars.length; i++) {
                 visualBars[i].className = i === (step % 32) ? 'bar active' : 'bar';
             }
-            statusTxt.innerText = `Bar ${Math.floor((step % 32) / 4) + 1}, Step ${(step % 4) + 1}`;
+            statusTxt.innerText = `Bar ${Math.floor((step % 32) / 4) + 1}, Beat ${(step % 4) + 1}`;
         }, delay);
     }
 
@@ -726,7 +725,6 @@
         const chords = getSelectedChords();
 
         const ticksPerQuarter = 480;
-        const ticksPer16th = 120;
 
         let track1Events = [];
         let track2Events = [];
@@ -754,7 +752,7 @@
 
             const barStartTicks = bar * ticksPerQuarter * 4;
 
-            // Track 1: Full Sustained Bar Chords (16th ticks x 16 = Full Bar)
+            // Track 1: Full Sustained Bar Chords (4 full beats per bar)
             chordNotes.forEach(note => {
                 track1Events.push({ time: barStartTicks, type: 'noteOn', note: note, vel: 80 });
                 track1Events.push({ time: barStartTicks + (ticksPerQuarter * 4), type: 'noteOff', note: note, vel: 0 });
@@ -766,20 +764,21 @@
                 const groove = getGrooveGate(step, grooveStyle);
 
                 if (groove.play && arpSetting !== 'off') {
-                    const stepTicks = barStartTicks + (step * ticksPer16th);
+                    const stepTicks = barStartTicks + (step * ticksPerQuarter);
                     const melodyNote = getFlowingMelodyNote(globalStep, chordNotes, arpSetting);
                     if (melodyNote !== null) {
                         let durationMult = groove.durationMult;
                         
                         if (melodyArt === 'legato') {
-                            durationMult *= 1.25; // Extended legato duration for full bars in DAW
+                            durationMult *= 1.3; 
                         } else if (melodyArt === 'glide') {
-                            durationMult *= 1.5;
+                            durationMult *= 1.6;
                         } else if (melodyArt === 'staccato') {
-                            durationMult *= 0.5;
+                            durationMult *= 0.4;
                         }
 
-                        const noteLengthTicks = Math.round(ticksPer16th * durationMult);
+                        // Calculate full tick length so notes show up as full blocks in DAW
+                        const noteLengthTicks = Math.round(ticksPerQuarter * durationMult);
                         const midiVel = Math.round(groove.vel * 750);
 
                         track2Events.push({ time: stepTicks, type: 'noteOn', note: melodyNote + 12, vel: midiVel });
