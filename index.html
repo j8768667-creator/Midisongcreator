@@ -9,8 +9,10 @@
         .container { max-width: 850px; margin: 0 auto; }
         .card { background: #1a1a1e; padding: 20px; border-radius: 8px; border: 1px solid #2d2d34; margin-bottom: 20px; }
         h3 { color: #00bcd4; margin-top: 0; }
-        button { background: #00bcd4; color: #121214; border: none; padding: 12px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; }
+        button { background: #00bcd4; color: #121214; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 14px; transition: background 0.2s; }
         button:hover { background: #0097a7; }
+        button.secondary { background: #2d2d34; color: #fff; border: 1px solid #444; }
+        button.secondary:hover { background: #3d3d44; }
         select, input { background: #2d2d34; color: #fff; border: 1px solid #444; padding: 8px; border-radius: 4px; font-size: 14px; }
         .chord-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
         .control-group { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px; align-items: center; }
@@ -18,16 +20,25 @@
         .bar { flex: 1; background: #2d2d34; border-radius: 3px; transition: background 0.1s; }
         .bar.active { background: #00bcd4; box-shadow: 0 0 10px #00bcd4; }
         .info { color: #888; font-size: 0.9em; margin-top: 5px; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; }
+        .file-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; background: #222228; padding: 10px; border-radius: 6px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>Advanced Chord Arranger & Arpeggiator Engine</h1>
-    <p>An upgraded engine implementing close-position voice leading (inversions) and custom rhythmic arpeggiation patterns.</p>
+    <p>An upgraded engine implementing close-position voice leading (inversions), custom arpeggiation patterns, and MIDI export capabilities.</p>
 
     <div class="card">
-        <h3>1. Configuration & Progression</h3>
+        <h3>1. File I/O & Manual Import</h3>
+        <div class="file-controls">
+            <label for="chordFileInput" style="font-size:0.9em; cursor:pointer;">Load JSON Chords:</label>
+            <input type="file" id="chordFileInput" accept=".json">
+            <button class="secondary" id="exportJsonBtn">Export Chords JSON</button>
+        </div>
+
+        <h3>2. Configuration & Progression</h3>
         <div id="chordInputs"></div>
         
         <div class="control-group">
@@ -52,13 +63,16 @@
                 </select>
             </div>
         </div>
-        <div style="margin-top: 20px;">
-            <button id="playBtn">Generate & Play Arrangement</button>
+
+        <div class="btn-group">
+            <button id="playBtn">Generate & Play Loop</button>
+            <button class="secondary" id="previewBtn">Preview Progression Once</button>
+            <button class="secondary" id="downloadMidiBtn">Download Multi-Track MIDI</button>
         </div>
     </div>
 
     <div class="card">
-        <h3>2. Engine Status Monitor</h3>
+        <h3>3. Engine Status Monitor</h3>
         <p>Current Step: <span id="currentStatus" style="color: #00bcd4; font-weight: bold;">Stopped</span></p>
         <div class="visualizer" id="playbackVisualizer">
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
@@ -74,15 +88,16 @@
     // --- MUSICAL UTILITIES & DICTIONARY ---
     const noteToMidi = { 'C': 60, 'C#': 61, 'D': 62, 'D#': 63, 'E': 64, 'F': 65, 'F#': 66, 'G': 67, 'G#': 68, 'A': 69, 'A#': 70, 'B': 71 };
     
+    // Fixed syntax error from original snippet
     const chordIntervals = {
-        'Major':,       
-        'Minor':,       
-        'Major7':,      
-        'Minor7':,      
+        'Major': [0, 4, 7],       
+        'Minor': [0, 3, 7],       
+        'Major7': [0, 4, 7, 11],      
+        'Minor7': [0, 3, 7, 10],      
         'Dominant7': [0, 4, 7, 10]    
     };
 
-    const defaultChords = [
+    let defaultChords = [
         { root: 'C', type: 'Major' },
         { root: 'A', type: 'Minor' },
         { root: 'F', type: 'Major' },
@@ -91,38 +106,93 @@
 
     // --- SETUP USER INTERFACE ---
     const chordInputsContainer = document.getElementById('chordInputs');
-    defaultChords.forEach((chord, index) => {
-        const row = document.createElement('div');
-        row.className = 'chord-row';
-        row.innerHTML = `
-            <span>Bar ${index + 1}:</span>
-            <select id="root-${index}">
-                ${Object.keys(noteToMidi).map(n => `<option value="${n}" ${n === chord.root ? 'selected' : ''}>${n}</option>`).join('')}
-            </select>
-            <select id="type-${index}">
-                ${Object.keys(chordIntervals).map(t => `<option value="${t}" ${t === chord.type ? 'selected' : ''}>${t}</option>`).join('')}
-            </select>
-        `;
-        chordInputsContainer.appendChild(row);
+
+    function renderChordInputs(chords) {
+        chordInputsContainer.innerHTML = '';
+        chords.forEach((chord, index) => {
+            const row = document.createElement('div');
+            row.className = 'chord-row';
+            row.innerHTML = `
+                <span>Bar ${index + 1}:</span>
+                <select id="root-${index}">
+                    ${Object.keys(noteToMidi).map(n => `<option value="${n}" ${n === chord.root ? 'selected' : ''}>${n}</option>`).join('')}
+                </select>
+                <select id="type-${index}">
+                    ${Object.keys(chordIntervals).map(t => `<option value="${t}" ${t === chord.type ? 'selected' : ''}>${t}</option>`).join('')}
+                </select>
+            `;
+            chordInputsContainer.appendChild(row);
+        });
+    }
+    renderChordInputs(defaultChords);
+
+    // --- FILE INPUT & JSON EXPORT ---
+    document.getElementById('chordFileInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const imported = JSON.parse(event.target.result);
+                if (Array.isArray(imported) && imported.length === 4) {
+                    renderChordInputs(imported);
+                    alert("Chords loaded successfully!");
+                } else {
+                    alert("Invalid JSON format. Expected an array of 4 chord objects.");
+                }
+            } catch(err) {
+                alert("Error reading JSON file.");
+            }
+        };
+        reader.readAsText(file);
     });
+
+    document.getElementById('exportJsonBtn').addEventListener('click', () => {
+        const chords = getSelectedChords();
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(chords, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", "chords_progression.json");
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    });
+
+    function getSelectedChords() {
+        let chords = [];
+        for (let i = 0; i < 4; i++) {
+            chords.push({
+                root: document.getElementById(`root-${i}`).value,
+                type: document.getElementById(`type-${i}`).value
+            });
+        }
+        return chords;
+    }
 
     // --- SCHEDULER & AUDIO STATE ---
     let audioCtx = null;
     let isRunning = false;
+    let isPreview = false;
     let timeoutId = null;
     let bpm, startTime, current16thNote;
     let queueSeconds = 0.05;
-
-    // Track previous note configurations for smooth voice leading
     let lastNotesPlayed = [];
 
     const playBtn = document.getElementById('playBtn');
+    const previewBtn = document.getElementById('previewBtn');
     const statusTxt = document.getElementById('currentStatus');
     const visualBars = document.getElementById('playbackVisualizer').children;
 
     playBtn.addEventListener('click', () => {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (isRunning) { stopArrangement(); } else { startArrangement(); }
+        if (isRunning) { stopArrangement(); } else { isPreview = false; startArrangement(); }
+    });
+
+    previewBtn.addEventListener('click', () => {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        stopArrangement();
+        isPreview = true;
+        startArrangement();
     });
 
     function startArrangement() {
@@ -131,13 +201,13 @@
         bpm = parseInt(document.getElementById('tempo').value);
         current16thNote = 0;
         startTime = audioCtx.currentTime + 0.1;
-        lastNotesPlayed = []; // Clear history on start
+        lastNotesPlayed = [];
         schedulerLoop();
     }
 
     function stopArrangement() {
         isRunning = false;
-        playBtn.innerText = "Generate & Play Arrangement";
+        playBtn.innerText = "Generate & Play Loop";
         statusTxt.innerText = "Stopped";
         clearTimeout(timeoutId);
         for (let bar of visualBars) bar.className = 'bar';
@@ -145,20 +215,24 @@
 
     function schedulerLoop() {
         while (startTime < audioCtx.currentTime + queueSeconds) {
+            if (isPreview && current16thNote === 16) {
+                stopArrangement();
+                return;
+            }
+            
             scheduleAudioForStep(current16thNote, startTime);
             updateVisualsOnTime(current16thNote, startTime);
             
             const secondsPer16th = 60.0 / bpm / 4.0;
             startTime += secondsPer16th;
             
-            current16thNote = (current16thNote + 1) % 16;
+            current16thNote = (current16thNote + 1) % (isPreview ? 17 : 16);
         }
         if (isRunning) { timeoutId = setTimeout(schedulerLoop, 25); }
     }
 
-    // --- VOICE LEADING LOGIC ENGINE (CHORD INVERSIONS) ---
+    // --- VOICE LEADING LOGIC ENGINE ---
     function getVoiceLedNotes(rootMidi, intervals, useSmooth) {
-        // Generate root position chord (Centered around MIDI octave 3/4)
         let chordNotes = intervals.map(interval => rootMidi - 12 + interval);
 
         if (!useSmooth || lastNotesPlayed.length === 0) {
@@ -166,27 +240,22 @@
             return chordNotes;
         }
 
-        // Compute average point of the last chord to establish an anchor
         const lastMidpoint = lastNotesPlayed.reduce((a, b) => a + b, 0) / lastNotesPlayed.length;
 
-        // Shift entire chord up or down by octaves until it is closest to the last chord's center
         let attempts = 0;
         while (attempts < 4) {
             let currentMidpoint = chordNotes.reduce((a, b) => a + b, 0) / chordNotes.length;
             if (currentMidpoint < lastMidpoint - 6) {
-                chordNotes = chordNotes.map(n => n + 12); // Shift up
+                chordNotes = chordNotes.map(n => n + 12);
             } else if (currentMidpoint > lastMidpoint + 6) {
-                chordNotes = chordNotes.map(n => n - 12); // Shift down
+                chordNotes = chordNotes.map(n => n - 12);
             } else {
                 break;
             }
             attempts++;
         }
 
-        // Fine-tune individual voices (invert notes aggressively for tighter voice leading)
-        // Sort from lowest to highest
         chordNotes.sort((a, b) => a - b);
-        
         lastNotesPlayed = [...chordNotes];
         return chordNotes;
     }
@@ -196,7 +265,6 @@
         if (mode === 'off') return null;
         
         let notesArray = [...chordNotes];
-        // Sort to ensure clean directional movements
         notesArray.sort((a, b) => a - b); 
 
         let index = 0;
@@ -206,7 +274,6 @@
             notesArray.reverse();
             index = stepInBar % notesArray.length;
         } else if (mode === 'updown') {
-            // Create loop cycle array (e.g. Note 0, 1, 2, 3, 2, 1)
             let cycle = [];
             for (let i = 0; i < notesArray.length; i++) cycle.push(i);
             for (let i = notesArray.length - 2; i > 0; i--) cycle.push(i);
@@ -218,11 +285,31 @@
         return notesArray[index];
     }
 
-    // --- MAIN AUDIO ROUTING & GENERATION ---
+    // --- AUDIO GENERATION ---
+    function playSynthTone(midiNote, duration, time, type = 'sine', volume = 0.1) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
+        
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, time);
+        
+        gain.gain.setValueAtTime(volume, time);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start(time);
+        osc.stop(time + duration);
+    }
+
     function scheduleAudioForStep(step, time) {
+        if (step >= 16) return;
+
         const currentBar = Math.floor(step / 4);
-        const stepInBar = step % 4; // Beat steps 0, 1, 2, 3
-        const extendedStepInBar = step % 16; // Continual 16th tracker
+        const stepInBar = step % 4;
+        const secondsPer16th = 60.0 / bpm / 4.0;
 
         const rootName = document.getElementById(`root-${currentBar}`).value;
         const chordType = document.getElementById(`type-${currentBar}`).value;
@@ -230,3 +317,166 @@
         const arpSetting = document.getElementById('arpMode').value;
         
         const rootMidi = noteToMidi[rootName];
+        const chordNotes = getVoiceLedNotes(rootMidi, chordIntervals[chordType], vLeadingMode === 'smooth');
+
+        // Play sustained pad chord on beat 0 of every bar
+        if (stepInBar === 0) {
+            chordNotes.forEach(note => playSynthTone(note, secondsPer16th * 4, time, 'triangle', 0.05));
+        }
+
+        // Play arpeggiated notes per 16th beat if enabled
+        const arpNote = getArpNoteForStep(stepInBar, chordNotes, arpSetting);
+        if (arpNote !== null) {
+            playSynthTone(arpNote + 12, secondsPer16th * 0.9, time, 'sine', 0.15);
+        }
+    }
+
+    function updateVisualsOnTime(step, time) {
+        const delay = Math.max(0, (time - audioCtx.currentTime) * 1000);
+        setTimeout(() => {
+            if (!isRunning) return;
+            for (let i = 0; i < visualBars.length; i++) {
+                visualBars[i].className = i === (step % 16) ? 'bar active' : 'bar';
+            }
+            statusTxt.innerText = `Bar ${Math.floor((step % 16) / 4) + 1}, Beat ${(step % 4) + 1}`;
+        }, delay);
+    }
+
+    // --- MULTI-TRACK MIDI FILE GENERATOR (VANILLA JS) ---
+    document.getElementById('downloadMidiBtn').addEventListener('click', () => {
+        const currentBpm = parseInt(document.getElementById('tempo').value);
+        const vLeadingMode = document.getElementById('voiceLeading').value;
+        const arpSetting = document.getElementById('arpMode').value;
+        const chords = getSelectedChords();
+
+        const ticksPerQuarter = 480;
+        const ticksPer16th = 120;
+
+        // Track 1: Sustained Chords
+        let track1Events = [];
+        // Track 2: Arpeggiator
+        let track2Events = [];
+
+        let lastNotes = [];
+
+        for (let bar = 0; bar < 4; bar++) {
+            const rootMidi = noteToMidi[chords[bar].root];
+            const intervals = chordIntervals[chords[bar].type];
+            
+            // Compute notes using voice leading state
+            let chordNotes = intervals.map(i => rootMidi - 12 + i);
+            if (vLeadingMode === 'smooth' && lastNotes.length > 0) {
+                const lastMidpoint = lastNotes.reduce((a, b) => a + b, 0) / lastNotes.length;
+                let attempts = 0;
+                while (attempts < 4) {
+                    let currentMidpoint = chordNotes.reduce((a, b) => a + b, 0) / chordNotes.length;
+                    if (currentMidpoint < lastMidpoint - 6) chordNotes = chordNotes.map(n => n + 12);
+                    else if (currentMidpoint > lastMidpoint + 6) chordNotes = chordNotes.map(n => n - 12);
+                    else break;
+                    attempts++;
+                }
+            }
+            chordNotes.sort((a, b) => a - b);
+            lastNotes = [...chordNotes];
+
+            // Add Track 1 Chord events (1 chord per bar = 1920 ticks)
+            const barStartTicks = bar * ticksPerQuarter * 4;
+            chordNotes.forEach(note => {
+                track1Events.push({ time: barStartTicks, type: 'noteOn', note: note, vel: 80 });
+                track1Events.push({ time: barStartTicks + (ticksPerQuarter * 4) - 10, type: 'noteOff', note: note, vel: 0 });
+            });
+
+            // Add Track 2 Arp events (4 steps per bar)
+            for (let step = 0; step < 4; step++) {
+                const stepTicks = barStartTicks + (step * ticksPer16th);
+                const arpNote = getArpNoteForStep(step, chordNotes, arpSetting);
+                if (arpNote !== null) {
+                    track2Events.push({ time: stepTicks, type: 'noteOn', note: arpNote + 12, vel: 100 });
+                    track2Events.push({ time: stepTicks + ticksPer16th - 10, type: 'noteOff', note: arpNote + 12, vel: 0 });
+                }
+            }
+        }
+
+        const midiBuffer = buildMidiFile([track1Events, track2Events], ticksPerQuarter, currentBpm);
+        const blob = new Blob([midiBuffer], { type: 'audio/midi' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'chord_arpeggiator_arrangement.mid';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    // Low-level Binary MIDI File Encoder
+    function buildMidiFile(tracks, ticksPerQuarter, bpm) {
+        function writeVarInt(value) {
+            let buffer = [];
+            let output = value & 0x7F;
+            while (value >>= 7) {
+                output <<= 8;
+                output |= ((value & 0x7F) | 0x80);
+            }
+            while (true) {
+                buffer.push(output & 0xFF);
+                if (output & 0x80) output >>= 8;
+                else break;
+            }
+            return buffer;
+        }
+
+        function buildTrackBytes(events, trackName) {
+            events.sort((a, b) => a.time - b.time);
+            let bytes = [];
+
+            // Track Name Meta Event
+            bytes.push(0x00, 0xFF, 0x03, trackName.length, ...Array.from(trackName).map(c => c.charCodeAt(0)));
+
+            let lastTime = 0;
+            events.forEach(e => {
+                const deltaTime = e.time - lastTime;
+                lastTime = e.time;
+                bytes.push(...writeVarInt(deltaTime));
+                if (e.type === 'noteOn') {
+                    bytes.push(0x90, e.note, e.vel);
+                } else if (e.type === 'noteOff') {
+                    bytes.push(0x80, e.note, e.vel);
+                }
+            });
+
+            // End of Track Meta Event
+            bytes.push(0x00, 0xFF, 0x2F, 0x00);
+
+            // Header Chunk for Track
+            const len = bytes.length;
+            return [
+                0x4D, 0x54, 0x72, 0x6B, // "MTrk"
+                (len >> 24) & 0xFF, (len >> 16) & 0xFF, (len >> 8) & 0xFF, len & 0xFF,
+                ...bytes
+            ];
+        }
+
+        // Header Chunk: Format 1, N tracks
+        const header = [
+            0x4D, 0x54, 0x68, 0x64, // "MThd"
+            0x00, 0x00, 0x00, 0x06, // Chunk length
+            0x00, 0x01,             // Format 1 (multi-track)
+            0x00, 0x03,             // 3 Tracks total (Conductor + 2 Data Tracks)
+            (ticksPerQuarter >> 8) & 0xFF, ticksPerQuarter & 0xFF
+        ];
+
+        // Track 0: Tempo track
+        const mpqn = Math.round(60000000 / bpm);
+        const tempoTrack = [
+            0x4D, 0x54, 0x72, 0x6B, 0x00, 0x00, 0x00, 0x0B,
+            0x00, 0xFF, 0x51, 0x03, (mpqn >> 16) & 0xFF, (mpqn >> 8) & 0xFF, mpqn & 0xFF,
+            0x00, 0xFF, 0x2F, 0x00
+        ];
+
+        const trk1 = buildTrackBytes(tracks[0], "Chords Pad");
+        const trk2 = buildTrackBytes(tracks[1], "Arpeggiator");
+
+        return new Uint8Array([...header, ...tempoTrack, ...trk1, ...trk2]);
+    }
+</script>
+</body>
+</html>
