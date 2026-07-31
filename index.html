@@ -199,8 +199,8 @@
             <div class="control-item">
                 <label for="melodyArticulation">Melody Articulation / Legato</label>
                 <select id="melodyArticulation">
-                    <option value="legato" selected>True Legato (Overlapping / Smooth)</option>
-                    <option value="glide">Glide Wash (Sustained Tail)</option>
+                    <option value="legato" selected>True Legato (Non-Overlapping / Smooth)</option>
+                    <option value="glide">Glide Wash (Long Tail)</option>
                     <option value="staccato">Short Pluck</option>
                 </select>
             </div>
@@ -252,7 +252,7 @@
         <h3>4. Engine Status Monitor</h3>
         <p>Current Step: <span id="currentStatus" style="color: #00bcd4; font-weight: bold;">Stopped</span></p>
         <div class="visualizer" id="playbackVisualizer"></div>
-        <div class="info">Each block represents one quarter-note beat slot in the 8-bar progression (32 steps total).</div>
+        <div class="info">Each block represents one quarter-note beat step in the 8-bar progression (32 steps total).</div>
     </div>
 </div>
 
@@ -611,25 +611,25 @@
     // --- RHYTHMIC GROOVE PATTERN DETECTOR ---
     function getGrooveGate(stepInBar, feelStyle) {
         if (feelStyle === 'legato16') {
-            return { play: true, durationMult: 1.25, vel: (stepInBar % 4 === 0) ? 0.12 : 0.08 };
+            return { play: true, durationMult: 1.0, vel: (stepInBar % 4 === 0) ? 0.12 : 0.08 };
         } else if (feelStyle === 'syncopated') {
             const syncPattern = [
-                { play: true, durationMult: 1.8, vel: 0.14 },
+                { play: true, durationMult: 1.0, vel: 0.14 },
                 { play: false },
-                { play: true, durationMult: 1.4, vel: 0.09 },
-                { play: true, durationMult: 1.6, vel: 0.11 }
+                { play: true, durationMult: 1.0, vel: 0.09 },
+                { play: true, durationMult: 1.0, vel: 0.11 }
             ];
             return syncPattern[stepInBar];
         } else if (feelStyle === 'dotted8') {
             const dottedPattern = [
-                { play: true, durationMult: 2.8, vel: 0.14 },
+                { play: true, durationMult: 2.0, vel: 0.14 },
                 { play: false },
                 { play: false },
-                { play: true, durationMult: 2.8, vel: 0.10 }
+                { play: true, durationMult: 1.0, vel: 0.10 }
             ];
             return dottedPattern[stepInBar];
         } else {
-            return { play: stepInBar % 2 === 0, durationMult: 1.8, vel: 0.11 };
+            return { play: stepInBar % 2 === 0, durationMult: 1.0, vel: 0.11 };
         }
     }
 
@@ -674,7 +674,7 @@
             });
         }
 
-        // Play Legato Melody Note
+        // Play Melody Note
         const groove = getGrooveGate(stepInBar, grooveStyle);
 
         if (groove.play && arpSetting !== 'off') {
@@ -685,13 +685,13 @@
                 let release = 0.2;
 
                 if (melodyArt === 'legato') {
-                    noteDuration *= 1.25;
+                    noteDuration *= 1.0;
                     attack = 0.03;
-                    release = 0.25;
+                    release = 0.15;
                 } else if (melodyArt === 'glide') {
-                    noteDuration *= 1.5;
+                    noteDuration *= 1.2;
                     attack = 0.08;
-                    release = 0.45;
+                    release = 0.3;
                 } else if (melodyArt === 'staccato') {
                     noteDuration *= 0.4;
                     attack = 0.01;
@@ -714,7 +714,7 @@
         }, delay);
     }
 
-    // --- ACCURATE LEGATO MULTI-TRACK MIDI GENERATOR ---
+    // --- ACCURATE NON-CLASHING MULTI-TRACK MIDI GENERATOR ---
     document.getElementById('downloadMidiBtn').addEventListener('click', () => {
         const currentBpm = parseInt(document.getElementById('tempo').value) || 100;
         const vLeadingMode = document.getElementById('voiceLeading').value;
@@ -729,6 +729,7 @@
         let track1Events = [];
         let track2Events = [];
         let lastNotes = [];
+        let activeMelodyEvents = [];
 
         for (let bar = 0; bar < totalTargetBars; bar++) {
             const chordIndex = bar % 8;
@@ -752,13 +753,13 @@
 
             const barStartTicks = bar * ticksPerQuarter * 4;
 
-            // Track 1: Full Sustained Bar Chords (4 full beats per bar)
+            // Track 1: Chords Pad (Full 4-beat sustain per bar)
             chordNotes.forEach(note => {
                 track1Events.push({ time: barStartTicks, type: 'noteOn', note: note, vel: 80 });
-                track1Events.push({ time: barStartTicks + (ticksPerQuarter * 4), type: 'noteOff', note: note, vel: 0 });
+                track1Events.push({ time: barStartTicks + (ticksPerQuarter * 4) - 1, type: 'noteOff', note: note, vel: 0 });
             });
 
-            // Track 2: Sustained Legato Melody Track
+            // Collect melody notes for Track 2
             for (let step = 0; step < 4; step++) {
                 const globalStep = (bar * 4) + step;
                 const groove = getGrooveGate(step, grooveStyle);
@@ -767,25 +768,30 @@
                     const stepTicks = barStartTicks + (step * ticksPerQuarter);
                     const melodyNote = getFlowingMelodyNote(globalStep, chordNotes, arpSetting);
                     if (melodyNote !== null) {
-                        let durationMult = groove.durationMult;
-                        
-                        if (melodyArt === 'legato') {
-                            durationMult *= 1.3; 
-                        } else if (melodyArt === 'glide') {
-                            durationMult *= 1.6;
-                        } else if (melodyArt === 'staccato') {
-                            durationMult *= 0.4;
-                        }
-
-                        // Calculate full tick length so notes show up as full blocks in DAW
-                        const noteLengthTicks = Math.round(ticksPerQuarter * durationMult);
-                        const midiVel = Math.round(groove.vel * 750);
-
-                        track2Events.push({ time: stepTicks, type: 'noteOn', note: melodyNote + 12, vel: midiVel });
-                        track2Events.push({ time: stepTicks + noteLengthTicks, type: 'noteOff', note: melodyNote + 12, vel: 0 });
+                        activeMelodyEvents.push({
+                            startTicks: stepTicks,
+                            note: melodyNote + 12,
+                            vel: Math.round(groove.vel * 750)
+                        });
                     }
                 }
             }
+        }
+
+        // Track 2: Non-Overlapping Legato Output Logic (Prevents Harmonic Clashing)
+        for (let i = 0; i < activeMelodyEvents.length; i++) {
+            const currentEv = activeMelodyEvents[i];
+            const nextEv = activeMelodyEvents[i + 1];
+
+            // Hold note until 1 tick before the next note starts (true legato, zero clash)
+            let durationTicks = nextEv ? (nextEv.startTicks - currentEv.startTicks - 1) : ticksPerQuarter;
+
+            if (melodyArt === 'staccato') {
+                durationTicks = Math.round(ticksPerQuarter * 0.4);
+            }
+
+            track2Events.push({ time: currentEv.startTicks, type: 'noteOn', note: currentEv.note, vel: currentEv.vel });
+            track2Events.push({ time: currentEv.startTicks + durationTicks, type: 'noteOff', note: currentEv.note, vel: 0 });
         }
 
         const midiBuffer = buildMidiFile([track1Events, track2Events], ticksPerQuarter, currentBpm);
