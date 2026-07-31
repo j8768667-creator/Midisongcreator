@@ -74,7 +74,7 @@
     // --- MUSICAL UTILITIES & DICTIONARY ---
     const noteToMidi = { 'C': 60, 'C#': 61, 'D': 62, 'D#': 63, 'E': 64, 'F': 65, 'F#': 66, 'G': 67, 'G#': 68, 'A': 69, 'A#': 70, 'B': 71 };
     
-    // FIXED: Populated interval definitions
+    // Interval definitions fully restored
     const chordIntervals = {
         'Major': [0, 4, 7],       
         'Minor': [0, 3, 7],       
@@ -212,7 +212,7 @@
         return notesArray[index];
     }
 
-    // --- SYNTHESIS ENGINE (TONE GENERATOR) ---
+    // --- SYNTHESIS ENGINE ---
     function playTone(midiNote, duration, time, waveform = 'sine', volume = 0.1) {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -221,7 +221,7 @@
         osc.type = waveform;
         osc.frequency.setValueAtTime(freq, time);
 
-        // Envelope Generator (ADSR)
+        // Envelope
         gain.gain.setValueAtTime(0.001, time);
         gain.gain.linearRampToValueAtTime(volume, time + 0.02);
         gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
@@ -233,7 +233,7 @@
         osc.stop(time + duration + 0.05);
     }
 
-    // --- FIXED: COMPLETE AUDIO ROUTING & GENERATION ---
+    // --- MAIN AUDIO ROUTING & GENERATION ---
     function scheduleAudioForStep(step, time) {
         const currentBar = Math.floor(step / 4);
         const stepInBar = step % 4;
@@ -249,14 +249,14 @@
         const secondsPer16th = 60.0 / bpm / 4.0;
 
         if (arpSetting === 'off') {
-            // Play sustained pad chord on beat 1 of each bar
+            // Play pad chord on beat 1 of each bar
             if (stepInBar === 0) {
                 chordNotes.forEach(note => {
                     playTone(note, secondsPer16th * 4, time, 'triangle', 0.08);
                 });
             }
         } else {
-            // Play arpeggiated single note on each 16th step
+            // Play arpeggiated note on each 16th step
             const arpNote = getArpNoteForStep(step, chordNotes, arpSetting);
             if (arpNote !== null) {
                 playTone(arpNote + 12, secondsPer16th * 1.2, time, 'sine', 0.12);
